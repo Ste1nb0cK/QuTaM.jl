@@ -1,6 +1,7 @@
 ################# SYSTEM #######################################################
 struct System
-    NLEVELS::Int64 #Number of levels of the system
+    NLEVELS::Int64 # Number of levels of the system
+    NCHANNELS::Int64 # Number of jump channels
     H::Matrix{ComplexF64} # Hamiltonian
     Ls::Vector{Matrix{ComplexF64}} # List of jump operators
     J::Matrix{ComplexF64} # Sum of Jump operators
@@ -27,11 +28,11 @@ struct System
        #     return A*rho*adjoint(A)
        # end
        # new(NLEVELS, H, Ls, J, He, expHe, CurvyLs, expcurvyL0)
-        new(NLEVELS, H, Ls, J, He)
+        new(NLEVELS, NCHANNELS, H, Ls, J, He)
     end
 end
 Base.show(io::IO, s::System) = print(io,
-    "System(NLEVELS=$(s.NLEVELS)\nH=$(s.H)\nLs=$(s.Ls)\nJ=$(s.J))\nHeff=$(s.Heff))")
+    "System(NLEVELS=$(s.NLEVELS)\nNCHANNELS=$(s.NCHANNELS)\nH=$(s.H)\nLs=$(s.Ls)\nJ=$(s.J))\nHeff=$(s.Heff))")
 
 
 ################# TRAJECTORY ###################################################
@@ -61,5 +62,4 @@ struct SimulParameters
     end
 end
 Base.show(io::IO, s::SimulParameters) = print(io,
-    "SimulParameters(psi0=$(s.psi0)\nnsamples=$(s.nsamples)\nseed=$(s.seed)/
-\nntraj=$(s.ntraj))\nmultiplier=$(s.multiplier)\ntf=$(s.tf)\ndt=$(s.dt)\neps=$(s.eps))")
+"SimulParameters(psi0=$(s.psi0)\nnsamples=$(s.nsamples)\nseed=$(s.seed)\nntraj=$(s.ntraj))\nmultiplier=$(s.multiplier)\ntf=$(s.tf)\ndt=$(s.dt)\neps=$(s.eps))")
