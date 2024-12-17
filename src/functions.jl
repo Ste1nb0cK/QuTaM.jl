@@ -59,7 +59,7 @@ function run_single_trajectory(sys::System, params::SimulParameters)
         if t>tf # If the next jump happens after tf, stop
             break
         end
-        psi_tilde = exp(-1im*tau*Heff) * Ls[1]*psi # State without normalization
+        psi_tilde = Ls[1]*exp(-1im*tau*Heff) * psi # State without normalization
         psi = psi_tilde / norm(psi_tilde)
         push!(states, psi)
         push!(labels, 1)
@@ -110,7 +110,7 @@ function run_trajectories(sys::System, params::SimulParameters)
             if t>tf # If the next jump happens after tf, stop
                 break
             end
-            psi_tilde = exp(-1im*tau*Heff) * Ls[1]*psi # State without normalization
+            psi_tilde = Ls[1]*exp(-1im*tau*Heff) * psi # State without normalization
             psi = psi_tilde / norm(psi_tilde)
             push!(states, psi)
             push!(labels, 1)
