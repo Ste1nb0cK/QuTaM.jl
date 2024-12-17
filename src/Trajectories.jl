@@ -11,6 +11,6 @@ include("functions.jl")
 
 # @reexport using LinearAlgebra  # Re-export all symbols from LinearAlgebra
 
-export run_single_trajectory, run_trajectories, SimulParameters, System
+export run_single_trajectory, run_trajectories, precompute!, SimulParameters, System
 
 end

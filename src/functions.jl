@@ -1,25 +1,30 @@
 ############# Precomputation routine ######################
 # Input:
 # 1. From the System: J and Heff
-# 2. From the simulation parameters: tf, nsamples and the multiplier
-# Output: (ts, Qs), a tuple with the finegrid and the precomputed values of the transformed J
-function precompute(J::Matrix{ComplexF64}, Heff::Matrix{ComplexF64},
-        tf::Float64, nsamples::Int64, multiplier::Float64)
-        ts = LinRange(0, multiplier*tf, nsamples)
-        Qs = Vector{Matrix{ComplexF64}}(undef, nsamples)
+# 2. From the simulation parameters:  nsamples
+# Output: None
+# Action: Modifies Qs to store the precomputed Q(ts)
+function precompute!(J::Matrix{ComplexF64}, Heff::Matrix{ComplexF64},
+         nsamples::Int64, multiplier::Float64,
+         ts::Vector{Float64}, Qs::Vector{Matrix{ComplexF64}})
         for k in 1:nsamples
             expm = exp(-1im*ts[k]*Heff)
             Qs[k] = expm * J * adjoint(expm)
         end
-        return ts, Qs
+    return
 end
 ############# Single Trajectory Routine ######################
 # Input:
 # 1. From the System: Ls and Heff
-# 2. From the Simulation Parameters: psi0, tf, nsamples, dt and eps
+# 2. From the Simulation Parameters it uses: psi0, tf, nsamples, dt, eps and seed
+# 3. Extra: A vectors W to store the weights and (ts, Qs) from the precomputing, the seed,
+# a vector psi to store the current state
 # Output:
 # A trajectory object with the data of the trajectory
-function run_single_trajectory(sys::System, params::SimulParameters)
+function run_single_trajectory(
+    sys::System, params::SimulParameters,
+    W::Vector{Float64}, psi::Vector{ComplexF64}, ts::Vector{Float64},
+    Qs::Vector{Vector{Float64}}, seed::Int64)
     # System
     J = sys.J
     Heff = sys.Heff
@@ -30,19 +35,16 @@ function run_single_trajectory(sys::System, params::SimulParameters)
     dt = params.dt
     eps = params.eps
     # Random number generator
-    Random.seed!(params.seed)
+    Random.seed!(seed)
     # Store
-    W = zeros(Float64, nsamples) # Vector to store the weights of the fine grid
     times = Vector{Float64}()
     labels = Vector{Int64}()
     states = Vector{Vector{ComplexF64}}()
 
    # 1. Set Initial condition
-    psi = params.psi0
+    psi .= params.psi0
     t = 0
-    # 2. Precomputing
-    ts, Qs =  precompute(J, Heff, tf, nsamples, params.multiplier)
-    # 3. Run the trajectory
+    # 2. Run the trajectory
     while t < tf
     # 1. Calculate the WTD for the state, these act as weights
         for k in 1:nsamples
@@ -68,7 +70,7 @@ function run_single_trajectory(sys::System, params::SimulParameters)
     return Trajectory(times, states, labels)
 end
 ############## Multitrajectory Routine ###########################
-function run_trajectories(sys::System, params::SimulParameters)
+function run_trajectories(sys::System, params::SimulParameters, single_traj=false)
     # System
     J = sys.J
     Heff = sys.Heff
