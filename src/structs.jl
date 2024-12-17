@@ -1,5 +1,6 @@
 ################# SYSTEM #######################################################
-struct System
+# Note: this struct is make mutable so that it is passed by sharing to the functions
+mutable struct System
     NLEVELS::Int64 # Number of levels of the system
     NCHANNELS::Int64 # Number of jump channels
     H::Matrix{ComplexF64} # Hamiltonian
