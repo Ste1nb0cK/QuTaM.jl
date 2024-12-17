@@ -40,13 +40,19 @@ function run_single_trajectory(
     while t < params.tf
     # 1. Calculate the WTD for the state, these act as weights
         for k in 1:params.nsamples
-           W[k] = real(dot(conj.(psi), Qs[k]*psi))
+           W[k] = real(dot(psi, Qs[k]*psi))
+        end
+        # If the probability of no jump is above the tolerance, declare dark state
+        q0 = norm(exp(-1im*params.multiplier*params.tf*sys.Heff)*psi)
+        if q0^2 > params.eps
+            break
         end
         # 1.a We must verify if we got a dark state, that can be cheked by
         # looking at the normalization of the QTD
-        if abs(sum(W)*params.dt - 1) > params.eps
-            break
-        end
+        #s = sum(W)*params.dt
+        # if abs(s - 1.0) > params.eps
+            # break
+        # end
         # 2. Sample jump time
         tau = StatsBase.sample(ts, StatsBase.weights(W))
         t = tau + t
@@ -62,58 +68,18 @@ function run_single_trajectory(
     return Trajectory(times, states, labels)
 end
 ############## Multitrajectory Routine ###########################
-function run_trajectories(sys::System, params::SimulParameters, single_traj=false)
-    # System
-    J = sys.J
-    Heff = sys.Heff
-    Ls = sys.Ls
-    # Simulation parameters
-    tf = params.tf
-    nsamples = params.nsamples
-    dt = params.dt
-    eps = params.eps
-    ntraj = params.ntraj
-   # Store
-    W = zeros(Float64, nsamples) # Vector to store the weights of the fine grid
-    times = Vector{Float64}()
-    labels = Vector{Int64}()
-    states = Vector{Vector{ComplexF64}}()
-    data = Vector{Trajectory}(undef, ntraj)
-    # Precomputing
-    ts, Qs =  precompute(J, Heff, tf, nsamples, params.multiplier)
-    for k in 1:ntraj
-        # Set Initial condition
-        psi = params.psi0
-        t = 0
-        # Random number generator
-        Random.seed!(params.seed + k)
-       #  Run the trajectory
-        while t < tf
-        # 1. Calculate the WTD for the state, these act as weights
-            for k in 1:nsamples
-               W[k] = real(dot(conj.(psi), Qs[k]*psi))
-            end
-            # 1.a We must verify if we got a dark state, that can be cheked by
-            # looking at the normalization of the QTD
-            if abs(sum(W)*dt - 1) > eps
-                break
-            end
-            # 2. Sample jump time
-            tau = StatsBase.sample(ts, StatsBase.weights(W))
-            t = tau + t
-            if t>tf # If the next jump happens after tf, stop
-                break
-            end
-            psi_tilde = Ls[1]*exp(-1im*tau*Heff) * psi # State without normalization
-            psi = psi_tilde / norm(psi_tilde)
-            push!(states, psi)
-            push!(labels, 1)
-            push!(times, t)
-        end
-            data[k] =  Trajectory(copy(times), copy(states), copy(labels))
-            empty!(states)
-            empty!(labels)
-            empty!(times)
+function run_trajectories(sys::System, params::SimulParameters)
+    ## Precomputing
+    ts = collect(LinRange(0, params.multiplier*params.tf, params.nsamples))
+    Qs = Vector{Matrix{ComplexF64}}(undef, params.nsamples)
+    precompute!(sys, params.nsamples, ts, Qs)
+    # Running the trajectory
+    psi = Vector{ComplexF64}(undef, sys.NLEVELS)
+    W = Vector{Float64}(undef, params.nsamples)
+    data = Vector{Trajectory}(undef, params.ntraj)
+    for k in 1:params.ntraj
+        data[k] = run_single_trajectory(sys, params,
+                                        W, psi, ts, Qs, seed = params.seed + k)
     end
     return data
 end
