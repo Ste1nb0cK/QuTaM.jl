@@ -40,7 +40,7 @@ Base.show(io::IO, s::System) = print(io,
 struct Trajectory
     times::Vector{Float64} # detection times
     states::Vector{Vector{ComplexF64}} #States after jump
-    labels::Vector{Int64} # Labels
+    labels::Vector{Int64} # Labels. Allow floats for NaNs
 end
 
 ################# SIMULATION PARAMETERS ########################################
