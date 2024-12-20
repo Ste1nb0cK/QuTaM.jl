@@ -36,13 +36,12 @@ Base.show(io::IO, s::System) = print(io,
     "System(NLEVELS=$(s.NLEVELS)\nNCHANNELS=$(s.NCHANNELS)\nH=$(s.H)\nLs=$(s.Ls)\nJ=$(s.J))\nHeff=$(s.Heff))")
 
 
-################# TRAJECTORY ###################################################
-struct Trajectory
-    times::Vector{Float64} # detection times
-    states::Vector{Vector{ComplexF64}} #States after jump
-    labels::Vector{Int64} # Labels. Allow floats for NaNs
+################ Data Point ################
+struct DetectionClick
+    time::Float64
+    label::Int64
 end
-
+const Trajectory = Vector{DetectionClick}
 ################# SIMULATION PARAMETERS ########################################
 # Simulation Struct, it contains the data necessary to run the simulation
 # and the precomputed values

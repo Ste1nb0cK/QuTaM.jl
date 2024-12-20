@@ -30,10 +30,10 @@ function run_single_trajectory(
     # Random number generator
     Random.seed!(seed)
     # Store
-    times = Vector{Float64}()
-    labels = Vector{Int64}()
-    states = Vector{Vector{ComplexF64}}()
-
+    # times = Vector{Float64}()
+    # labels = Vector{Int64}()
+    # states = Vector{Vector{ComplexF64}}()
+    traj = Vector{DetectionClick}()
    # 1. Set Initial condition
     psi .= params.psi0
     t::Float64 = 0
@@ -62,14 +62,15 @@ function run_single_trajectory(
             P[k] = norm(sys.Ls[k]*psi)^2
         end
         P .= P / aux_P
-        channel = StatsBase.sample(1:sys.NCHANNELS, StatsBase.weights(P))
+        channel::Int64 = StatsBase.sample(1:sys.NCHANNELS, StatsBase.weights(P))
         psi .= sys.Ls[channel]*psi # State without normalization
         psi .= psi / norm(psi)
-        push!(states, psi)
-        push!(labels, channel)
-        push!(times, t)
+        # push!(states, psi)
+        # push!(labels, channel)
+        # push!(times, t)
+        push!(traj, DetectionClick(tau, channel))
     end
-    return Trajectory(times, states, labels)
+    return traj
 end
 ############## Multitrajectory Routine ###########################
 function run_trajectories(sys::System, params::SimulParameters)

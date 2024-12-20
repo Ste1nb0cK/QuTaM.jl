@@ -33,12 +33,13 @@ simulparams = SimulParameters(psi0,
     end;
     # Data generation
 data = run_trajectories(sys, simulparams)
-times = [data[k].times[1] for k in 1:simulparams.ntraj]
+# println(data[1][1].time)
+times = [data[k][1].time for k in 1:simulparams.ntraj]
 d = Distributions.Exponential(1/gamma)
-# Use a two sample Kolmogorov-Smirnov test, pvalue above 0.2 is accepted
+## Use a two sample Kolmogorov-Smirnov test, pvalue above 0.2 is accepted
 pvalue = HypothesisTests.pvalue(
-    HypothesisTests.ApproximateTwoSampleKSTest(times, rand(d, simulparams.ntraj)))
+   HypothesisTests.ApproximateTwoSampleKSTest(times, rand(d, simulparams.ntraj)))
 @testset verbose=true "WTD Distribution" begin
-    p0WTD = 0.2 # Minimal pvalue for accepting the null hypothesis
-    @test pvalue > p0WTD
+   p0WTD = 0.2 # Minimal pvalue for accepting the null hypothesis
+   @test pvalue > p0WTD
 end
