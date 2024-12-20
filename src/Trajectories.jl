@@ -1,4 +1,4 @@
-module QuantumTrajectories
+module QuTaM
 
 # Dependencies
 using LinearAlgebra
