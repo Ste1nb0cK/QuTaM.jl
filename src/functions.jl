@@ -89,3 +89,21 @@ function run_trajectories(sys::System, params::SimulParameters)
     end
     return data
 end
+
+############ Evaluation at given times #######################
+### From the trajectory, reconstruct the states at the jump points
+function states_at_jumps(traj::Trajectory, sys::System,
+                     t_given::Vector{Float64}, psi0::Vector{ComplexF64})
+    states = Vector{Vector{ComplexF64}}
+    nlevels = size(psi0)[1]
+    njumps = size(traj)[1]
+    psi = zeros(ComplexF64, nlevels)
+    psi .= psi0
+    for k in 1:(njump-1)
+        psi .= exp(-1im*(traj[k+1].time-traj[k].time)*sys.Heff) * psi
+        psi .= sys.Ls[traj[k]] * psi
+        psi .= psi/norm(psi)
+        push!(states, psi)
+    end
+    return states
+end
