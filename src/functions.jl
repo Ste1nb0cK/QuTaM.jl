@@ -93,7 +93,7 @@ end
 ############ Evaluation at given times #######################
 ### From the trajectory, reconstruct the states at the jump points
 function states_at_jumps(traj::Trajectory, sys::System,
-                     , psi0::Vector{ComplexF64})
+                      psi0::Vector{ComplexF64})
     njumps = size(traj)[1]
     states = Vector{Vector{ComplexF64}}()
     nlevels = size(psi0)[1]

@@ -1,6 +1,6 @@
 sigma_z = [[1.0+0im, 0] [0, -1]]
 sigma_m = [[0.0+0im, 0] [1, 0]]
-
+################ SETUP FOR QUBIT RADIATIVE DAMPING ##################
 
 rd_EPS = 1e-5 # Tolerance for the distance respect to the Frobenious norm
 rd_deltaomega = 10.0
