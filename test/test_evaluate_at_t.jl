@@ -10,8 +10,8 @@ function identify_state(s::Vector{ComplexF64})
     end
 end
 @testset "Inbetween Jump Evaluation" begin
-    sys = QuTaM.rf_sys
-    params = QuTaM.rf_params
+    sys = QuTaM.rdt_sys
+    params = QuTaM.rdt_params
     traj = QuTaM.sample_single_trajectory(sys, params, 10)
     jump_dts = [click.time for click in traj]
     min_dt = extrema(jump_dts)[1]

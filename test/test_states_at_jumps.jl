@@ -1,7 +1,7 @@
 @testset "States at Jumps" begin
     ############### Check sizes match for multiple jumps
-    sys = QuTaM.rf_sys
-    params = QuTaM.rf_params
+    sys = QuTaM.rdt_sys
+    params = QuTaM.rdt_params
     for seed in 1:3
        traj = QuTaM.sample_single_trajectory(sys, params, seed);
        states = QuTaM.states_at_jumps(traj, sys, params.psi0)
