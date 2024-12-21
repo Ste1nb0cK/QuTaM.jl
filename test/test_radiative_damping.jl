@@ -18,6 +18,9 @@ rd_pvalue = HypothesisTests.pvalue(
    HypothesisTests.ApproximateTwoSampleKSTest(rd_times, rand(rd_d, QuTaM.rd_params.ntraj)))
 @testset verbose=true "WTD Distribution" begin
    rd_p0WTD = 0.2 # Minimal pvalue for accepting the null hypothesis
-   @test rd_pvalue > rd_p0WTD
    println("WTD Distribution fitted with pvalue=$(rd_pvalue)\n")
+   fit_par = Distributions.fit(Distributions.Exponential, rd_times).θ
+   println("WTD Distribution fitted with gamma=$(1/fit_par)")
+   @test rd_pvalue > rd_p0WTD
+   @test abs(fit_par - 1/QuTaM.rd_gamma) < 0.1
 end
