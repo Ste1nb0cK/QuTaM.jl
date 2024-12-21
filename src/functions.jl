@@ -103,8 +103,6 @@ function states_at_jumps(traj::Trajectory, sys::System,
                       psi0::Vector{ComplexF64})
     njumps = size(traj)[1]
     states = Vector{Vector{ComplexF64}}(undef, njumps)
-    nlevels = size(psi0)[1]
-    njumps = size(traj)[1]
     psi = copy(psi0)
     k = 1
     for click in traj
@@ -114,4 +112,10 @@ function states_at_jumps(traj::Trajectory, sys::System,
     k = k +1
     end
     return states
+end
+
+function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
+                       psi0::Vector{ComplexF64})
+    psi = copy(psi0)
+    return
 end
