@@ -72,6 +72,21 @@ function run_single_trajectory(
     end
     return traj
 end
+
+function sample_single_trajectory(sys::System, params::SimulParameters)
+    ## Precomputing
+    ts = collect(LinRange(0, params.multiplier*params.tf, params.nsamples))
+    Qs = Vector{Matrix{ComplexF64}}(undef, params.nsamples)
+    precompute!(sys, params.nsamples, ts, Qs)
+    # Running the trajectory
+    psi = Vector{ComplexF64}(undef, sys.NLEVELS)
+    W = Vector{Float64}(undef, params.nsamples)
+    P = Vector{Float64}(undef, sys.NCHANNELS)
+    data = run_single_trajectory(sys, params,
+                                W, P, psi, ts, Qs, seed = params.seed)
+    return data
+end
+
 ############## Multitrajectory Routine ###########################
 function run_trajectories(sys::System, params::SimulParameters)
     ## Precomputing
@@ -95,37 +110,36 @@ end
 function states_at_jumps(traj::Trajectory, sys::System,
                       psi0::Vector{ComplexF64})
     njumps = size(traj)[1]
-    states = Vector{Vector{ComplexF64}}()
+    states = Vector{Vector{ComplexF64}}(undef, njumps)
     nlevels = size(psi0)[1]
     njumps = size(traj)[1]
-    psi = zeros(ComplexF64, nlevels)
-    psi .= psi0
+    psi = copy(psi0)
     if njumps < 1
         return states
     end
     psi .= sys.Ls[traj[1].label] * exp(-1im*(traj[1].time)*sys.Heff) * psi
     psi .= psi/norm(psi)
-    push!(states, psi)
+    print(psi)
+    states[1] = copy(psi) # store a copy in states
 
     if njumps == 1
        return  states
-    end
 
-    # else if njumps == 2
-    #     psi .= sys.Ls[traj[njumps].label] * exp(-1im*(traj[njumps].time - traj[njumps-1].time)*sys.Heff) * psi
-    #     psi .= psi/norm(psi)
-    #     push!(states, psi)
-    #     return states
-    # end
+    elseif njumps == 2
+        psi .= sys.Ls[traj[njumps].label] * exp(-1im*(traj[njumps].time - traj[njumps-1].time)*sys.Heff) * psi
+        psi .= psi/norm(psi)
+        states[2] = copy(psi)
+        return states
+    end
 
     for k in 2:(njumps-1)
         psi .= sys.Ls[traj[k].label] * exp(-1im*(traj[k].time - traj[k-1].time)*sys.Heff) * psi
-        psi .= psi/norm(psi)
-        push!(states, psi)
+        psi .= psi./norm(psi)
+        states[k] = copy(psi)
     end
 
     psi .= sys.Ls[traj[njumps].label] * exp(-1im*(traj[njumps].time - traj[njumps-1].time)*sys.Heff) * psi
-    psi .= psi/norm(psi)
-    push!(states, psi)
+    psi .= psi./norm(psi)
+    states[end] = copy(psi)
     return states
 end
