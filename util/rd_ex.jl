@@ -19,7 +19,7 @@ rd_params = SimulParameters(psi0,
     5.0, # Final time. Set very long so that all trajectories jump
     1, # seed
     1000, # Number of trajectories
-    10_000, # Number of samples in the finegrid
+    3_000, # Number of samples in the finegrid
     3, # Multiplier to use in the fine grid
     1e-3 # Tolerance for passing Dark state test
 )

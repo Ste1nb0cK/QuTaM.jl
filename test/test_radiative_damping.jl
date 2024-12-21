@@ -18,5 +18,6 @@ rd_pvalue = HypothesisTests.pvalue(
    HypothesisTests.ApproximateTwoSampleKSTest(rd_times, rand(rd_d, QuTaM.rd_params.ntraj)))
 @testset verbose=true "WTD Distribution" begin
    rd_p0WTD = 0.2 # Minimal pvalue for accepting the null hypothesis
+   println("WTD Distribution fitted with pvalue=$(rd_pvalue)\n")
    @test rd_pvalue > rd_p0WTD
 end
