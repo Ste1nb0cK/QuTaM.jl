@@ -114,8 +114,48 @@ function states_at_jumps(traj::Trajectory, sys::System,
     return states
 end
 
+# ASSUMPTION: t_given is properly contained in (0, params.tf)
 function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
                        psi0::Vector{ComplexF64})
     psi = copy(psi0)
-    return
+    ntimes = size(t_given)[1]
+    jump_states = states_at_jumps(traj, sys, psi0)
+    njumps = size(jump_states)[1]
+    t_ = 0
+    counter = 1
+    counter_c = 1
+    # Special case: if the time array is empty, return an empty array
+    if isempty(t_given)
+        return Vector{Vector{ComplexF64}}()
+    end
+
+    states = Vector{Vector{ComplexF64}}(undef, ntimes)
+
+    while (t_given[counter] < traj[counter_c].time) && (counter <= ntimes)
+            psi .= exp(-1im*(t_given[counter])*sys.Heff) * psi
+            psi .= psi/norm(psi)
+            states[counter] = copy(psi)
+            counter = counter + 1
+    end
+    t_ = t_ + traj[counter_c].time
+    counter_c = counter_c + 1
+    # All the states before the first jump can be handled like this:
+    while counter_c < njumps
+        timeclick = traj[counter_c].time
+        while (t_ < t_given[counter] < t_ + timeclick) & (counter <= ntimes)
+             psi .= exp(-1im*(t_given[counter] - t_)*sys.Heff) * jump_states[counter_c-1]
+             psi .= psi/norm(psi)
+             states[counter] = copy(psi)
+             counter = counter + 1
+         end
+         t_ = t_ + click.time
+        counter_c = counter_c + 1
+    end
+    while counter <= ntimes
+        psi .= exp(-1im*(t_given[counter] - t_)*sys.Heff) * jump_states[end]
+        psi .= psi/norm(psi)
+        states[counter] = copy(psi)
+        counter = counter + 1
+    end
+    return states
 end
