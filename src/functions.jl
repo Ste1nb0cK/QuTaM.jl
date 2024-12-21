@@ -118,7 +118,7 @@ function states_at_jumps(traj::Trajectory, sys::System,
     # psi .= psi/norm(psi)
     # print(psi)
     # states[1] = copy(psi) # store a copy in states
-    k = 0
+    k = 1
     for click in traj
     psi .= sys.Ls[click.label] * exp(-1im*(click.time)*sys.Heff) * psi
     psi .= psi/norm(psi)
