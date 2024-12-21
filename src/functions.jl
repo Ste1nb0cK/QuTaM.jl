@@ -82,7 +82,8 @@ end
 ############## Multitrajectory Routine ###########################
 function run_trajectories(sys::System, params::SimulParameters)
     ## Precomputing
-    ts = collect(LinRange(0, params.multiplier*params.tf, params.nsamples))
+    t0 = eps(Float64) # To avoid having jumps at 0
+    ts = collect(LinRange(t0, params.multiplier*params.tf, params.nsamples))
     Qs = Vector{Matrix{ComplexF64}}(undef, params.nsamples)
     precompute!(sys, params.nsamples, ts, Qs)
     # Running the trajectory
