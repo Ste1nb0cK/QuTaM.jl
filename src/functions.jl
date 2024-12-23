@@ -38,6 +38,7 @@ function run_single_trajectory(
         # If the probability of no jump is above the tolerance, declare dark state
         q0 = norm(exp(-1im*params.multiplier*params.tf*sys.Heff)*psi)
         if q0^2 > params.eps
+            # println("Dark State Condition")
             break
         end
         # Calculate the WTD for the state, these act as weights
@@ -48,6 +49,7 @@ function run_single_trajectory(
         tau = StatsBase.sample(ts, StatsBase.weights(W))
         t = tau + t
         if t > params.tf # If the next jump happens after tf, stop
+            # println("Jump Happens after tf")
             break
         end
         psi .= exp(-1im*tau*sys.Heff) * psi
@@ -166,3 +168,4 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
     end
     return states
 end
+
