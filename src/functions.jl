@@ -159,8 +159,6 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
             for k in 1:sys.NLEVELS
             states[counter, k] = psi[k]
            end
-            println("State added before jumps, counter = $(counter)\n")
-            println(states[counter, :], "\n")
             counter = counter + 1
             if counter > ntimes
                 break
@@ -177,16 +175,11 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
              for k in 1:sys.NLEVELS
              states[counter, k] = psi[k]
              end
-            println("State added between jumps, counter = $(counter)\n")
-            println(states[counter, :], "\n")
             counter = counter + 1
              if counter > ntimes
                  break
              end
          end
-              # print("Counter_t condition: $(counter <= ntimes)\n")
-       # print("Counter_c condition: $(counter_c <= njumps)\n")
-       # print("Time Condition: $(t_ < t_given[counter] < t_ + timeclick)\n")
        t_ = t_ + timeclick
        counter_c = counter_c + 1
     end
@@ -196,8 +189,6 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
         for k in 1:sys.NLEVELS
         states[counter, k] = psi[k]
         end
-        println("State added after final jump, counter = $(counter), t_given[counter]=$(t_given[counter])\n")
-        println(states[counter, :], "\n")
         counter = counter + 1
     end
     return states

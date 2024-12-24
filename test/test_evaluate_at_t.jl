@@ -17,25 +17,22 @@ end
     jump_dts = [click.time for click in traj]
     min_dt = extrema(jump_dts)[1]
     jump_times = cumsum(jump_dts)
-    print("The jump times are:$(jump_times)","\n")
     jump_labels = [click.label for click in traj]
     # Verify that evaluation just after the jumps coincides with the jumps
     t_given_a = jump_times .+ min_dt/2
     # print("Size of t_given=",size(t_given)[1], "\n")
     states_between_jumps_a = QuTaM.evaluate_at_t(t_given_a, traj, sys, params.psi0)
     njumps = size(states_between_jumps_a)[1]
-   # Evaluate just after jump
+   # Evaluate just after jump and check unitarity
     for k in 1:njumps
-    @test identify_state(states_between_jumps_a[k, :]) == jump_labels[k]
+        @test identify_state(states_between_jumps_a[k, :]) == jump_labels[k]
+        @test abs(norm(states_between_jumps_a[k, :]) -1) < 0.01
     end
     # Evaluate just before jump
     t_given_b = jump_times .- min_dt/2
     states_between_jumps_b = QuTaM.evaluate_at_t(t_given_b, traj, sys, params.psi0)
-    print("The trajectory is:\n", traj)
-    print("The states are:\n", states_between_jumps_b)
     for k in 1:njumps
-    @test identify_state(states_between_jumps_b[k, :]) - 1 == (jump_labels[k] % 2)
+        @test identify_state(states_between_jumps_b[k, :]) - 1 == (jump_labels[k] % 2)
+        @test abs(norm(states_between_jumps_b[k, :]) -1) < 0.01
     end
-
 end
-
