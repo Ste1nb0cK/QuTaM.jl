@@ -18,8 +18,18 @@ end
     min_dt = extrema(jump_dts)[1]
     jump_times = cumsum(jump_dts)
     jump_labels = [click.label for click in traj]
-    # Verify that evaluation just after the jumps coincides with the jumps
+    # Check that empty time vector returns empty vector
+    t_given_empty = Vector{Float64}(undef, 0)
+    states_empty = QuTaM.evaluate_at_t(t_given_empty, traj, sys, params.psi0)
+    @test isempty(states_empty)
+    # Check no-jump trajectory
     t_given_a = jump_times .+ min_dt/2
+    traj_empty = Vector{QuTaM.DetectionClick}(undef, 0)
+    states_no_jumps = QuTaM.evaluate_at_t(t_given_a, traj_empty, sys, params.psi0)
+    for k in 1:size(states_no_jumps)[1]
+        @test identify_state(states_no_jumps[k, :]) == identify_state(params.psi0)
+    end
+    # Verify that evaluation just after the jumps coincides with the jumps
     # print("Size of t_given=",size(t_given)[1], "\n")
     states_between_jumps_a = QuTaM.evaluate_at_t(t_given_a, traj, sys, params.psi0)
     njumps = size(states_between_jumps_a)[1]
@@ -35,4 +45,5 @@ end
         @test identify_state(states_between_jumps_b[k, :]) - 1 == (jump_labels[k] % 2)
         @test abs(norm(states_between_jumps_b[k, :]) -1) < 0.01
     end
+
 end

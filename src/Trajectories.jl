@@ -2,6 +2,7 @@ module QuTaM
 
 # Dependencies
 using LinearAlgebra
+using Statistics
 import Random
 import StatsBase
 
