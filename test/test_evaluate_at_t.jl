@@ -23,6 +23,6 @@ end
     njumps = size(states_after_jumps)[1]
     # Evaluate just after jump
     for k in 1:njumps
-    @test identify_state(states_after_jumps[k]) == jump_labels[k]
+    @test identify_state(states_after_jumps[k, :]) == jump_labels[k]
     end
 end
