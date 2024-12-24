@@ -137,7 +137,9 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
 
     states = Array{ComplexF64}(undef, ntimes, sys.NLEVELS)
 
-    while (t_given[counter] < traj[counter_c].time) && (counter <= ntimes)
+    # Edge case: if the trajectory is empty, evaluate exponentials and return
+    if isempty(traj)
+        while counter <= ntimes
             psi .= exp(-1im*(t_given[counter])*sys.Heff) * psi
             psi .= psi/norm(psi)
             for k in 1:sys.NLEVELS
@@ -147,32 +149,55 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
             if counter > ntimes
                 break
             end
+        end
+        return states
+    end
+
+    while (t_given[counter] < traj[counter_c].time) && (counter <= ntimes)
+            psi .= exp(-1im*(t_given[counter])*sys.Heff) * psi
+            psi .= psi/norm(psi)
+            for k in 1:sys.NLEVELS
+            states[counter, k] = psi[k]
+           end
+            println("State added before jumps, counter = $(counter)\n")
+            println(states[counter, :], "\n")
+            counter = counter + 1
+            if counter > ntimes
+                break
+            end
     end
     t_ = t_ + traj[counter_c].time
     counter_c = counter_c + 1
     # All the states before the first jump can be handled like this:
-    while (counter_c < njumps) & (counter <= ntimes)
+    while (counter_c <= njumps) && (counter <= ntimes)
         timeclick = traj[counter_c].time
-        while (t_ < t_given[counter] < t_ + timeclick) & (counter <= ntimes)
-             psi .= exp(-1im*(t_given[counter] - t_)*sys.Heff) * jump_states[counter_c-1]
+        while (t_ < t_given[counter] < t_ + timeclick) && (counter <= ntimes)
+             psi .= exp(-1im*(t_given[counter] - t_)*sys.Heff) * jump_states[counter_c-1, :]
              psi .= psi/norm(psi)
              for k in 1:sys.NLEVELS
              states[counter, k] = psi[k]
              end
-             counter = counter + 1
+            println("State added between jumps, counter = $(counter)\n")
+            println(states[counter, :], "\n")
+            counter = counter + 1
              if counter > ntimes
                  break
              end
          end
-         t_ = t_ + timeclick
-        counter_c = counter_c + 1
+              # print("Counter_t condition: $(counter <= ntimes)\n")
+       # print("Counter_c condition: $(counter_c <= njumps)\n")
+       # print("Time Condition: $(t_ < t_given[counter] < t_ + timeclick)\n")
+       t_ = t_ + timeclick
+       counter_c = counter_c + 1
     end
     while counter <= ntimes
-        psi .= exp(-1im*(t_given[counter] - t_)*sys.Heff) * jump_states[end]
+        psi .= exp(-1im*(t_given[counter] - t_)*sys.Heff) * jump_states[njumps, :]
         psi .= psi/norm(psi)
         for k in 1:sys.NLEVELS
         states[counter, k] = psi[k]
         end
+        println("State added after final jump, counter = $(counter), t_given[counter]=$(t_given[counter])\n")
+        println(states[counter, :], "\n")
         counter = counter + 1
     end
     return states

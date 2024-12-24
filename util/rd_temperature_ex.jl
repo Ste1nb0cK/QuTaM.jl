@@ -13,6 +13,6 @@ rdt_params= SimulParameters(psi0,
     10, # seed
     1000, # Number of trajectories
     10_000, # Number of samples in the finegrid
-    10, # Multiplier to use in the fine grid
+    10.0, # Multiplier to use in the fine grid
     1e-3 # Tolerance for passing Dark state test
 )

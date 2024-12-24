@@ -20,6 +20,6 @@ rf_params = SimulParameters(psi0,
     1, # seed
     1000, # Number of trajectories
     5_000, # Number of samples in the finegrid
-    5, # Multiplier to use in the fine grid
+    5.0, # Multiplier to use in the fine grid
     1e-3 # Tolerance for passing Dark state test
 )

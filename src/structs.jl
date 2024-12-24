@@ -55,7 +55,7 @@ struct SimulParameters
     dt::Float64 # time step for the finegrid
     eps::Float64 # Tolerance for passing WTD normalziation
     function SimulParameters(psi0::Vector{ComplexF64}, tf::Float64,
-        s::Int64, ntraj::Int64, nsamples::Int64=10000, m::Int64=10,
+        s::Int64, ntraj::Int64, nsamples::Int64=10000, m::Float64=10.0,
                              eps::Float64=1e-3)
         deltat = m*tf/nsamples
         new(psi0, nsamples, s, ntraj, m, tf, deltat, eps)

@@ -36,7 +36,7 @@
                              1, # seed
                              20, # Number of trajectories
                              3_000, # Number of samples in the finegrid
-                             3, # Multiplier to use in the fine grid
+                             3.0, # Multiplier to use in the fine grid
                              1e-3 # Tolerance for passing Dark state test
                              )
     traj = QuTaM.sample_single_trajectory(sys, params, params.seed)

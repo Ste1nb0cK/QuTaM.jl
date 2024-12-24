@@ -9,6 +9,7 @@ function identify_state(s::Vector{ComplexF64})
         return 0
     end
 end
+
 @testset "Inbetween Jump Evaluation" begin
     sys = QuTaM.rdt_sys
     params = QuTaM.rdt_params
@@ -16,13 +17,25 @@ end
     jump_dts = [click.time for click in traj]
     min_dt = extrema(jump_dts)[1]
     jump_times = cumsum(jump_dts)
+    print("The jump times are:$(jump_times)","\n")
     jump_labels = [click.label for click in traj]
     # Verify that evaluation just after the jumps coincides with the jumps
-    t_given = jump_times .+ min_dt/2
-    states_after_jumps = QuTaM.states_at_jumps(traj, sys, params.psi0)
-    njumps = size(states_after_jumps)[1]
-    # Evaluate just after jump
+    t_given_a = jump_times .+ min_dt/2
+    # print("Size of t_given=",size(t_given)[1], "\n")
+    states_between_jumps_a = QuTaM.evaluate_at_t(t_given_a, traj, sys, params.psi0)
+    njumps = size(states_between_jumps_a)[1]
+   # Evaluate just after jump
     for k in 1:njumps
-    @test identify_state(states_after_jumps[k, :]) == jump_labels[k]
+    @test identify_state(states_between_jumps_a[k, :]) == jump_labels[k]
     end
+    # Evaluate just before jump
+    t_given_b = jump_times .- min_dt/2
+    states_between_jumps_b = QuTaM.evaluate_at_t(t_given_b, traj, sys, params.psi0)
+    print("The trajectory is:\n", traj)
+    print("The states are:\n", states_between_jumps_b)
+    for k in 1:njumps
+    @test identify_state(states_between_jumps_b[k, :]) - 1 == (jump_labels[k] % 2)
+    end
+
 end
+

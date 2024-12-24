@@ -11,7 +11,7 @@ using .QuTaM
     # Data generation
 rd_data = run_trajectories(QuTaM.rd_sys, QuTaM.rd_params)
 # println(data[1][1].time)
-rd_times = [rd_data[k][1].time for k in 1:QuTaM.rd_params.ntraj]
+rd_times = [rd_data[k][1].time for k in 1:QuTaM.rd_params.ntraj if !isempty(rd_data[k])]
 rd_d = Distributions.Exponential(1/QuTaM.rd_gamma)
 ## Use a two sample Kolmogorov-Smirnov test, pvalue above 0.2 is accepted
 rd_pvalue = HypothesisTests.pvalue(
