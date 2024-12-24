@@ -143,7 +143,7 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
             psi .= exp(-1im*(t_given[counter])*sys.Heff) * psi
             psi .= psi/norm(psi)
             for k in 1:sys.NLEVELS
-            states[counter, k] = psi[k]
+                states[counter, k] = psi[k]
             end
             counter = counter + 1
             if counter > ntimes
@@ -157,8 +157,8 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
             psi .= exp(-1im*(t_given[counter])*sys.Heff) * psi
             psi .= psi/norm(psi)
             for k in 1:sys.NLEVELS
-            states[counter, k] = psi[k]
-           end
+                states[counter, k] = psi[k]
+            end
             counter = counter + 1
             if counter > ntimes
                 break
@@ -173,9 +173,9 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
              psi .= exp(-1im*(t_given[counter] - t_)*sys.Heff) * jump_states[counter_c-1, :]
              psi .= psi/norm(psi)
              for k in 1:sys.NLEVELS
-             states[counter, k] = psi[k]
+                 states[counter, k] = psi[k]
              end
-            counter = counter + 1
+             counter = counter + 1
              if counter > ntimes
                  break
              end
@@ -183,11 +183,12 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
        t_ = t_ + timeclick
        counter_c = counter_c + 1
     end
+
     while counter <= ntimes
         psi .= exp(-1im*(t_given[counter] - t_)*sys.Heff) * jump_states[njumps, :]
         psi .= psi/norm(psi)
         for k in 1:sys.NLEVELS
-        states[counter, k] = psi[k]
+            states[counter, k] = psi[k]
         end
         counter = counter + 1
     end
