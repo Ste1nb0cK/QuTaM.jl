@@ -16,10 +16,10 @@ psi0[2] = 1 # Initial condition
 rf_sys = System(rf_H, # Hamiltonian
 [sqrt(rf_gamma)*sigma_m]) #Jump Operators
 rf_params = SimulParameters(psi0,
-    10.0, # Final time. Set very long so that all trajectories jump
+    1.0, # Final time. Set very long so that all trajectories jump
     1, # seed
     1000, # Number of trajectories
-    5_000, # Number of samples in the finegrid
-    5.0, # Multiplier to use in the fine grid
+    50_000, # Number of samples in the finegrid
+    10.0, # Multiplier to use in the fine grid
     1e-3 # Tolerance for passing Dark state test
 )
