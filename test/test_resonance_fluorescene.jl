@@ -1,5 +1,4 @@
 using DifferentialEquations
-
 sys = QuTaM.rf_sys
 params = QuTaM.rf_params
 function rf_de!(dr, r, p, t)
@@ -22,7 +21,16 @@ gamma = QuTaM.rf_gamma
 delta = QuTaM.rf_delta
 omega = QuTaM.rf_omega
 r_steady = 1/(gamma^2 + 2*omega^2+4*delta^2) * [-4*delta*omega; 2*omega*gamma;-gamma^2-4*delta^2 ]
-plot(sol, idxs=[(0,1), (0, 2), (0, 3)])
-plot!(t_given, ones(Float64, size(t_given)[1])*r_steady[1], line=:dash)
-plot!(t_given, ones(Float64, size(t_given)[1])*r_steady[2], line=:dash)
-plot!(t_given, ones(Float64, size(t_given)[1])*r_steady[3], line=:dash)
+
+# Basic Operators
+L = sqrt(gamma)*[[0, 0] [1, 0]]
+H = [[-delta, omega] [omega, delta]]
+Heff = [[-delta, omega] [omega, delta-0.5im*gamma]]
+J = gamma*[[0, 0] [0, 1]]
+@testset "Resonance Fluorescene: Basic Operators" begin
+       @test norm(QuTaM.rf_sys.H - H) < QuTaM.rf_EPS
+       @test norm(QuTaM.rf_sys.Ls[1]- L) < QuTaM.rf_EPS
+       @test norm(QuTaM.rf_sys.Heff- Heff) < QuTaM.rf_EPS
+       @test norm(QuTaM.rf_sys.J - J) < QuTaM.rf_EPS
+
+end

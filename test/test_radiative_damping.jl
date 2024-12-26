@@ -1,7 +1,3 @@
-import Distributions, HypothesisTests
-include("../src/Trajectories.jl")
-using .QuTaM
-
 @testset verbose=true "Basic Operators" begin
        @test norm(QuTaM.rd_sys.H - QuTaM.rd_H) < QuTaM.rd_EPS
        @test norm(QuTaM.rd_sys.Ls[1]- QuTaM.rd_L) < QuTaM.rd_EPS
