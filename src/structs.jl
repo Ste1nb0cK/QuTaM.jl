@@ -45,7 +45,7 @@ const Trajectory = Vector{DetectionClick}
 ################# SIMULATION PARAMETERS ########################################
 # Simulation Struct, it contains the data necessary to run the simulation
 # and the precomputed values
-struct SimulParameters
+mutable struct SimulParameters
     psi0::Vector{ComplexF64}
     nsamples::Int64 # Number of samples in the finegrid
     seed::Int64 # seed

@@ -35,12 +35,14 @@ function run_single_trajectory(
     channel = 0
     # 2. Run the trajectory
     while t < params.tf
-        # If the probability of no jump is above the tolerance, declare dark state
+        #
+        #
         q0 = norm(exp(-1im*params.multiplier*params.tf*sys.Heff)*psi)
-        if q0^2 > params.eps
-            # println("Dark State Condition")
-            break
-        end
+
+        # if q0^2 > params.eps
+        #     println("Dark State Condition reached at t=$(t)")
+        #     break
+        # end
         # Calculate the WTD for the state, these act as weights
         for k in 1:params.nsamples
            W[k] = real(dot(psi, Qs[k]*psi))
@@ -48,10 +50,10 @@ function run_single_trajectory(
         # 2. Sample jump time
         tau = StatsBase.sample(ts, StatsBase.weights(W))
         t = tau + t
-        if t > params.tf # If the next jump happens after tf, stop
-            # println("Jump Happens after tf")
-            break
-        end
+        # if t > params.tf # If the next jump happens after tf, stop
+            # println("Jump Happens after tf, at t=$(t)")
+            # break
+        # end
         psi .= exp(-1im*tau*sys.Heff) * psi
         # 3. Sample the channel
         aux_P = real(dot(psi, sys.J * psi))
