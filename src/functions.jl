@@ -154,9 +154,9 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
         end
         return states
     end
-
+    # All the states before the first jump can be handled like this:
     while (t_given[counter] < traj[counter_c].time) && (counter <= ntimes)
-            psi .= exp(-1im*(t_given[counter])*sys.Heff) * psi
+            psi .= exp(-1im*(t_given[counter])*sys.Heff) * psi0
             psi .= psi/norm(psi)
             for k in 1:sys.NLEVELS
                 states[counter, k] = psi[k]
@@ -168,7 +168,6 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
     end
     t_ = t_ + traj[counter_c].time
     counter_c = counter_c + 1
-    # All the states before the first jump can be handled like this:
     while (counter_c <= njumps) && (counter <= ntimes)
         timeclick = traj[counter_c].time
         while (t_ < t_given[counter] < t_ + timeclick) && (counter <= ntimes)

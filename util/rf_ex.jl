@@ -19,3 +19,5 @@ rf_params = SimulParameters(psi0,
     1.0, # Multiplier to use in the fine grid
     1e-3 # Tolerance for passing Dark state test
 )
+
+# Distribution class for
