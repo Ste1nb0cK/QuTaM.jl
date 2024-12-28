@@ -39,10 +39,10 @@ function run_single_trajectory(
         #
         q0 = norm(exp(-1im*params.multiplier*params.tf*sys.Heff)*psi)
 
-        # if q0^2 > params.eps
+        if q0^2 > params.eps
         #     println("Dark State Condition reached at t=$(t)")
-        #     break
-        # end
+            break
+        end
         # Calculate the WTD for the state, these act as weights
         for k in 1:params.nsamples
            W[k] = real(dot(psi, Qs[k]*psi))
