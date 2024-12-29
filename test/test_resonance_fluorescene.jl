@@ -7,7 +7,7 @@ params = QuTaM.rf_params
 gamma = QuTaM.rf_gamma
 delta = QuTaM.rf_delta
 omega = QuTaM.rf_omega
-r0 = [0.0; 0.0; 1.0] # Initial Condition
+r0 = [0.0; 0.0; -1.0] # Initial Condition
 tspan = (0.0, params.tf)
 t_given = collect(LinRange(0, params.tf, 1000));
 
@@ -111,7 +111,7 @@ end
 
 ################# Visual test of the WTD #############
 WTD_analytical(tau) =  (16*gamma*omega^2)*exp(-0.5*gamma*tau) * sin(0.25*tau*sqrt(16*omega^2-gamma^2))^2/(-gamma^2+16*omega^2)
-histogram(tau_sample, normalize=:pdf, label="Sample")
+hist = histogram(tau_sample, normalize=:pdf, label="Sample")
 plot!(t_given, Distributions.pdf.(f, t_given), label="Analytical")
 ################ Visual test of the observables
 # System of equations for RF (Source: Wiseman section 3.3.1)
@@ -129,13 +129,21 @@ prob = ODEProblem(rf_de!, r0, tspan)
 sol = solve(prob, reltol = 1e-6, saveat = t_given);
 
 using LaTeXStrings
-p1 = plot(t_given, r_avg[:, 1], label="Unraveling", title=L"\sigma_x")
-plot!(t_given, r_sample[:,1, 1], label="Sample Trajectory")
-plot!(sol, idxs =(0, 1), label="Lindblad ")
-p2 = plot(sol, idxs =(0, 2), title=L"\sigma_y", line=:dash, legend=false)
-plot!(t_given, r_sample[:,2, 1])
-plot!(t_given, r_avg[:, 2])
-p3 = plot(sol, idxs = (0,3), title=L"\sigma_z", line=:dash, legend=false)
-plot!(t_given, r_avg[:, 3])
-plot!(t_given, r_sample[:,3, 1])
-plot(p1, p2,p3,  layout=(3, 1))
+
+p1 = plot(t_given, r_avg[:, 1], label="Unraveling", title=L"\sigma_x", seriescolor=:blue)
+plot!(t_given, r_sample[:,1, 1], label="Sample Trajectory", seriescolor=:green)
+plot!(sol, idxs =(0, 1), label="Lindblad", seriescolor=:red)
+
+p2 = plot(t_given, r_avg[:, 2], title=L"\sigma_y", seriescolor=:blue)
+plot!(t_given, r_sample[:,2, 1], seriescolor=:green)
+plot!(sol, idxs =(0, 2),  legend=false,  seriescolor=:red)
+
+p3 = plot(t_given, r_avg[:, 3], title=L"\sigma_z", seriescolor=:blue)
+plot!(t_given, r_sample[:,3, 1],  seriescolor=:green)
+plot!(sol, idxs =(0, 3), legend=false, seriescolor=:red)
+
+l = @layout [
+    a{0.5w} grid(3,1)
+]
+
+plot(hist, p1, p2,p3,  layout=l)
