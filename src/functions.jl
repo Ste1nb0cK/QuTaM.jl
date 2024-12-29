@@ -83,7 +83,47 @@ function sample_single_trajectory(sys::System, params::SimulParameters, seed::In
     return data
 end
 
-############## Multitrajectory Routine ###########################
+"""
+    run_trajectories(sys::System, params::SimulParameters) -> Vector{Trajectory}
+
+Run multiple quantum trajectories for a given system using precomputed data and specified simulation parameters.
+
+# Arguments
+- `sys::System`: The quantum system to simulate, containing information about its structure, energy levels, and dynamics.
+- `params::SimulParameters`: A structure containing simulation parameters such as:
+    - `multiplier`: Factor to scale the simulation end time `tf`.
+    - `tf`: Final time for the simulation.
+    - `nsamples`: Number of time samples for the simulation.
+    - `ntraj`: Number of trajectories to simulate.
+    - `seed`: Seed for the random number generator to ensure reproducibility.
+
+# Returns
+- `Vector{Trajectory}`: A vector containing the results of the simulated trajectories. Each element corresponds to a single trajectory and encapsulates relevant system state information over time.
+
+# Details
+1. **Precomputations**:
+   - The function generates a time vector `ts` using a scaled final time (`params.multiplier * params.tf`) and a specified number of samples (`params.nsamples`).
+   - Precomputed matrices `Qs` are generated and populated via `precompute!` to optimize performance during trajectory simulations.
+
+2. **Trajectory Simulation**:
+   - The function allocates memory for intermediate variables such as `psi` (state vector), `W` (weights), and `P` (channel probabilities).
+   - Each trajectory is simulated using the `run_single_trajectory` function, with seeds incremented for each trajectory to ensure uniqueness.
+
+3. **Avoiding Artifacts**:
+   - The initial time is set to a small positive value (`eps(Float64)`) to avoid numerical artifacts at `t = 0`.
+
+# Example
+```julia
+# Create a system and simulation parameters
+sys = System(NLEVELS = 3, NCHANNELS = 2)
+params = SimulParameters(multiplier = 1.5, tf = 10.0, nsamples = 100, ntraj = 50, seed = 42)
+
+# Run the trajectories
+trajectories = run_trajectories(sys, params)
+
+# Access the first trajectory
+first_traj = trajectories[1]
+"""
 function run_trajectories(sys::System, params::SimulParameters)
     ## Precomputing
     t0 = eps(Float64) # To avoid having jumps at 0
