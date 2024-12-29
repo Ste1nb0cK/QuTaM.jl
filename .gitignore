@@ -1,0 +1,12 @@
+.CondaPkg
+*.jl.*.cov
+*.jl.cov
+*.jl.mem
+*.rej
+docs/build/
+Manifest.toml
+docs/CondaPkg.toml
+test/CondaPkg.toml
+test/conda-env
+node_modules
+.DS_Store
