@@ -1,18 +1,23 @@
 module QuTaM
 
 # Dependencies
-using LinearAlgebra
-using Statistics
-import Random
-import StatsBase
+using LinearAlgebra, Statistics
+import Random, StatsBase
 
 # Source files
 include("structs.jl")
 include("functions.jl")
+# Utilities
 include("../util/pauli_m.jl")
 include("../util/rd_ex.jl")
 include("../util/rd_temperature_ex.jl")
 include("../util/rf_ex.jl")
-export  run_trajectories, SimulParameters, System
-
+export
+    # Structs
+    System, SimulParameters, DetectionClick, Trajectory,
+    # Functions
+    run_trajectories,
+    sample_single_trajectory,
+    evaluate_at_t,
+    states_at_jumps
 end
