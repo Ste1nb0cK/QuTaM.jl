@@ -25,7 +25,8 @@ makedocs(;
     canonical = "https://abelsiqueira.github.io/COPIERTemplate.jl"
   ),
   pages = [
-    "Home" => "index.md","Reference" => "reference.md","Tutorial" => "tutorial.md"
+    "Home" => "index.md", "Tutorial" => "tutorial.md",
+      "System and SimulParameters" => "system_simulparams.md", "Reference" => "reference.md",
     # [
     #   nice_name(file) => file for
     #   file in readdir(joinpath(@__DIR__, "src")) if file != "index.md" && splitext(file)[2] == ".md"

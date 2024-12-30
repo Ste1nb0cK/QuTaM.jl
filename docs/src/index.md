@@ -2,14 +2,6 @@
 CurrentModule = QuTaM
 ```
 
-
 # QuTaM
 
-Documentation for QuTaM
-
-
-```@docs
-run_trajectories
-```
-
-dubidubiuda
+Here I would write a good description of the library, if I had one.
