@@ -142,7 +142,7 @@ function run_trajectories(sys::System, params::SimulParameters)
     W = Vector{Float64}(undef, params.nsamples)
     P = Vector{Float64}(undef, sys.NCHANNELS)
     data = Vector{Trajectory}(undef, params.ntraj)
-    for k in 1:params.ntraj
+   @showprogress 1 "Sampling..." for k in 1:params.ntraj
         data[k] = run_single_trajectory(sys, params,
                                         W, P, psi, ts, Qs, seed = params.seed + k)
     end
