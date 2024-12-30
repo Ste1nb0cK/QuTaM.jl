@@ -1,9 +1,18 @@
 ############# Precomputation routine ######################
-# Input:
-# 1. From the System: J and Heff
-# 2. From the simulation parameters:  nsamples
-# Output: None
-# Action: Modifies Qs to store the precomputed Q(ts)
+"""
+
+    precompute!(sys::System, nsamples::Int64,
+         ts::Vector{Float64}, Qs::Vector{Matrix{ComplexF64}})
+
+Does the precomputation routine for the Gillipsie algorithm.
+The result is stored in the `Qs`.
+# Arguments
+
+`sys::System`: system
+`nsamples::Int64`: number of samples
+`ts::Vector{Float64}`: fine grid vector
+`Qs::Vector{Matrix{ComplexF64}}`: vector of matrices to store the precomputation.
+"""
 function precompute!(sys::System, nsamples::Int64,
          ts::Vector{Float64}, Qs::Vector{Matrix{ComplexF64}})
         for k in 1:nsamples
@@ -13,15 +22,34 @@ function precompute!(sys::System, nsamples::Int64,
     return
 end
 ############# Single Trajectory Routine ######################
-# Input:
-# 1. From the System: Ls and Heff
-# 2. From the Simulation Parameters it uses: psi0, tf, nsamples, dt, eps and seed
-# 3. Extra:  vectors W to store the weights of the jump times, a vector
-# P to store the weights on the chhanels, (ts, Qs) from the precomputing and the seed
-# of the single trajectory BEWARE: IT MIGHT NOT COINCIDE WITH THAT OF THE SIMULATION PARAMETERS,
-# a vector psi to store the current state
-# Output:
-# A trajectory object with the data of the trajectory
+"""
+    run_single_trajectories(sys::System, params::SimulParameters,
+     W::Vector{Float64}, P::Vector{Float64}, psi::Vector{ComplexF64},
+     ts::Vector{Float64}, Qs::Vector{Matrix{ComplexF64}};
+      seed::Int64 = 1) -> Trajectory
+
+Sample a single trajectory from the system and parameters using the Gillipsie algorithm
+. This is inteded to be used by `run_trajectories`
+
+# Arguments:
+- `sys::System`: System of interest
+- `params::SimulParameters`: simulation parameters
+- `W::Vector{Float64}`: to store the weights over the fine grid
+- `P::Vector{Float64}`: to store the weights over the channels
+- `psi::Vector{ComplexF64}`: to store the current state vector
+- `ts::Vector{Float64}`: the finegrid of waiting times
+- `Qs::Vector{Matrix{ComplexF64}}`: to store the precomputed values
+- `seed::Int64`: seed for generating the trajectory
+# Returns:
+The sample trajectory
+
+# Warning: the seed does not coincide with that of `params` by default.
+
+# Waning: final jump in the trajectory happens after final time
+The trajectory ends when a jump that happens after `params.tf` is obtained,
+yet that jump is stored in the trajectory. In other words, the last jump of the
+trajectory always happen after the set final time.
+"""
 function run_single_trajectory(
     sys::System,
     params::SimulParameters,
@@ -33,14 +61,11 @@ function run_single_trajectory(
     psi .= params.psi0
     t::Float64 = 0
     channel = 0
-    # 2. Run the trajectory
+    # Run the trajectory
     while t < params.tf
-        #
-        #
         q0 = norm(exp(-1im*params.multiplier*params.tf*sys.Heff)*psi)
 
         if q0^2 > params.eps
-        #     println("Dark State Condition reached at t=$(t)")
             break
         end
         # Calculate the WTD for the state, these act as weights
@@ -50,10 +75,6 @@ function run_single_trajectory(
         # 2. Sample jump time
         tau = StatsBase.sample(ts, StatsBase.weights(W))
         t = tau + t
-        # if t > params.tf # If the next jump happens after tf, stop
-            # println("Jump Happens after tf, at t=$(t)")
-            # break
-        # end
         psi .= exp(-1im*tau*sys.Heff) * psi
         # 3. Sample the channel
         aux_P = real(dot(psi, sys.J * psi))
@@ -69,6 +90,21 @@ function run_single_trajectory(
     return traj
 end
 
+"""
+
+    sample_single_trajectory(sys::System, params::SimulParameters, seed::Int64) -> Vector{Trajectory}
+
+Sample a single trajectory. This is inteded to be used in case a single sample is needed without
+redefining `params.ntraj`.
+
+# Arguments
+- `sys::System`
+- `params::SimulParameters`
+- `seed::Int64`
+
+# Returnrs
+A 1-element trajectory vector.
+"""
 function sample_single_trajectory(sys::System, params::SimulParameters, seed::Int64)
     ## Precomputing
     ts = collect(LinRange(0, params.multiplier*params.tf, params.nsamples))
@@ -86,43 +122,14 @@ end
 """
     run_trajectories(sys::System, params::SimulParameters) -> Vector{Trajectory}
 
-Run multiple quantum trajectories for a given system using precomputed data and specified simulation parameters.
+Sample multiple trajectories for a given system and parameters.
 
 # Arguments
 - `sys::System`: The quantum system to simulate, containing information about its structure, energy levels, and dynamics.
 - `params::SimulParameters`: A structure containing simulation parameters such as:
-    - `multiplier`: Factor to scale the simulation end time `tf`.
-    - `tf`: Final time for the simulation.
-    - `nsamples`: Number of time samples for the simulation.
-    - `ntraj`: Number of trajectories to simulate.
-    - `seed`: Seed for the random number generator to ensure reproducibility.
 
 # Returns
 - `Vector{Trajectory}`: A vector containing the results of the simulated trajectories. Each element corresponds to a single trajectory and encapsulates relevant system state information over time.
-
-# Details
-1. **Precomputations**:
-   - The function generates a time vector `ts` using a scaled final time (`params.multiplier * params.tf`) and a specified number of samples (`params.nsamples`).
-   - Precomputed matrices `Qs` are generated and populated via `precompute!` to optimize performance during trajectory simulations.
-
-2. **Trajectory Simulation**:
-   - The function allocates memory for intermediate variables such as `psi` (state vector), `W` (weights), and `P` (channel probabilities).
-   - Each trajectory is simulated using the `run_single_trajectory` function, with seeds incremented for each trajectory to ensure uniqueness.
-
-3. **Avoiding Artifacts**:
-   - The initial time is set to a small positive value (`eps(Float64)`) to avoid numerical artifacts at `t = 0`.
-
-# Example
-```julia
-# Create a system and simulation parameters
-sys = System(NLEVELS = 3, NCHANNELS = 2)
-params = SimulParameters(multiplier = 1.5, tf = 10.0, nsamples = 100, ntraj = 50, seed = 42)
-
-# Run the trajectories
-trajectories = run_trajectories(sys, params)
-
-# Access the first trajectory
-first_traj = trajectories[1]
 """
 function run_trajectories(sys::System, params::SimulParameters)
     ## Precomputing
@@ -143,7 +150,22 @@ function run_trajectories(sys::System, params::SimulParameters)
 end
 
 ############ Evaluation at given times #######################
-### From the trajectory, reconstruct the states at the jump points
+"""
+    states_at_jumps(traj::Trajectory, sys::System,
+                      psi0::Vector{ComplexF64}) - > Array{ComplexF64}
+From a given trajectory, recover the states at each jump.
+
+# Arguments
+- `traj::Trajectory`: Trajectory
+- `sys::System`: System of interest
+- `psi0::Vector{ComplexF64}`: Initial state
+
+# Returns
+`Array{ComplexF64}` with the states
+
+The dimensions of the returned array `s` are `(size(traj), sys.NLEVELS)`,
+so to recover the state vector at the ``n``-th jump one would do `s[n, :]`.
+"""
 function states_at_jumps(traj::Trajectory, sys::System,
                       psi0::Vector{ComplexF64})
     njumps = size(traj)[1]

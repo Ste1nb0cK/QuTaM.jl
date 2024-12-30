@@ -1,5 +1,27 @@
 ################# SYSTEM #######################################################
-# Note: this struct is make mutable so that it is passed by sharing to the functions
+"""
+
+    System(
+    NLEVELS::Int64, NCHANNELS::Int64, H::Matrix{ComplexF64}
+    Ls::Vector{Matrix{ComplexF64}}, J::Matrix{ComplexF64},
+    Heff::Matrix{ComplexF64})
+
+A `mutable struct` that characterizes the dynamics via specification of
+ the jump and hamiltonian operators.
+
+# Fields
+- `NLEVELS::Int64`: Number of levels of the system
+- `NCHANNELS::Int64`: Number of jump channels
+- `H::Matrix{ComplexF64}`: Hamiltonian
+- `Ls::Vector{Matrix{ComplexF64}}`: List of jump operators
+- `J::Matrix{ComplexF64}`: Sum of all the ``L_k^{*}L_k``
+- `Heff::Matrix{ComplexF64}`: Effective Hamiltonian
+
+# Constructor
+To create an instance it's enough to provide the hamiltonian and the jump operators in a vector.
+`System(H::Matrix{ComplexF64}, Ls::Vector{Matrix{ComplexF64}})`
+
+"""
 mutable struct System
     NLEVELS::Int64 # Number of levels of the system
     NCHANNELS::Int64 # Number of jump channels
@@ -7,11 +29,13 @@ mutable struct System
     Ls::Vector{Matrix{ComplexF64}} # List of jump operators
     J::Matrix{ComplexF64} # Sum of Jump operators
     Heff::Matrix{ComplexF64} # Effective Hamiltonian
-    # ExpHeff::Function # Function that calculates the exponential of Heff at tau
-    # JumpSuperOperators::Vector{Function}  # Jump super operators
-    # NoJumpSuperOperator::Function # No-Jump superoperator
-    # Inner Constructor
-    function System(H::Matrix{ComplexF64}, Ls::Vector{Matrix{ComplexF64}})
+    @doc "
+         Inner Constructor of `System` struct.
+         # Arguments:
+         `H::Matrix{ComplexF64}`
+         `Ls::Vector{Matrix{ComplexF64}}`
+"
+   function System(H::Matrix{ComplexF64}, Ls::Vector{Matrix{ComplexF64}})
         NLEVELS = size(H)[1]
         NCHANNELS = size(Ls)[1] # Number of jump channels
         J = zeros(ComplexF64, NLEVELS, NLEVELS)
@@ -19,17 +43,8 @@ mutable struct System
             J = J + adjoint(L)*L
         end
         CurvyLs = Vector{Function}(undef, NCHANNELS)
-       # for k in 1:NCHANNELS
-       #     CurvyLs[k] = rho::Matrix{ComplexF64} -> Ls[k]*rho*adjoint(Ls[k])
-       # end
-        He = H - 0.5im*J
-       # expHe(tau::Float64) =  expm(-1im*tau*He)
-       # function expcurvyL0(rho::Matrix{ComplexF64}, tau::Float64)
-       #     A = expHe(tau)
-       #     return A*rho*adjoint(A)
-       # end
-       # new(NLEVELS, H, Ls, J, He, expHe, CurvyLs, expcurvyL0)
-        new(NLEVELS, NCHANNELS, H, Ls, J, He)
+       He = H - 0.5im*J
+       new(NLEVELS, NCHANNELS, H, Ls, J, He)
     end
 end
 Base.show(io::IO, s::System) = print(io,
@@ -37,14 +52,56 @@ Base.show(io::IO, s::System) = print(io,
 
 
 ################ Data Point ################
+"""
+
+    DetectionClick(time::Float64, label::Int64)
+`Inmutable struct` that represents the clicks by the time waited to see the click and the
+label of the channel in which it occured.
+
+# Fields
+- `time::Float64`: Waiting time
+- `label::Int64`: Label of the channel of the click
+ """
 struct DetectionClick
     time::Float64
     label::Int64
 end
+
+@doc "Alias for `Vector{DetectionClick}`"
 const Trajectory = Vector{DetectionClick}
 ################# SIMULATION PARAMETERS ########################################
-# Simulation Struct, it contains the data necessary to run the simulation
-# and the precomputed values
+"""
+
+    SimulParameters(
+        psi0::Vector{ComplexF64}, nsamples::Int64, seed::Int64,
+                ntraj::Int64, multiplier::Float64, tf::Float64,
+                dt::Float64, eps::Float64)
+
+
+A `mutable struct` containing all the necessary information for running the
+the simulation.
+
+# Fields
+- `psi0::Vector{ComplexF64}`: Initial state vector
+- `nsamples::Int64`: Number of samples in the finegrid
+- `seed::Int64`: seed
+- `ntraj::Int64`: Number of trajectories
+- `multiplier::Float64`: Multiplier to use in the fine grid
+- `tf::Float64`: Final time
+- `dt::Float64`: time step for the finegrid
+- `eps::Float64`: Tolerance for passing WTD normalziation
+
+# Constructor
+To create an instance it's enough to provide initial state, final time, seed and
+number of trajectories. Unless given nsamples, multiplier and eps use default values.
+`SimulParameters(psi0::Vector{ComplexF64}, tf::Float64,
+        s::Int64, ntraj::Int64, nsamples::Int64=10000, m::Float64=10.0,
+                             eps::Float64=1e-3)`
+# About the multiplier
+For the Gillipsie algorithm to work it's key to have a grid that's capable of
+resolving the statistical details of the WTD, this grid is taken in the interval
+`(0, tf*multiplier)`.
+"""
 mutable struct SimulParameters
     psi0::Vector{ComplexF64}
     nsamples::Int64 # Number of samples in the finegrid
@@ -54,6 +111,9 @@ mutable struct SimulParameters
     tf::Float64 # Final time
     dt::Float64 # time step for the finegrid
     eps::Float64 # Tolerance for passing WTD normalziation
+    @doc "Inner constructor of `SimulParameters` SimulParameters(psi0::Vector{ComplexF64}, tf::Float64,
+        s::Int64, ntraj::Int64, nsamples::Int64=10000, m::Float64=10.0,
+                             eps::Float64=1e-3)"
     function SimulParameters(psi0::Vector{ComplexF64}, tf::Float64,
         s::Int64, ntraj::Int64, nsamples::Int64=10000, m::Float64=10.0,
                              eps::Float64=1e-3)

@@ -1,17 +1,5 @@
 # [Reference](@id reference)
-
-## Contents
-
-```@contents
-Pages = ["95-reference.md"]
-```
-
-## Index
-
-```@index
-Pages = ["95-reference.md"]
-```
-
+Here you can find the documentation for the all the functions and structs in the library.
 ```@autodocs
 Modules = [QuTaM]
 ```
