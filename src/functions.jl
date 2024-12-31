@@ -83,6 +83,9 @@ function run_single_trajectory(
         end
         P .= P / aux_P
         channel::Int64 = StatsBase.sample(1:sys.NCHANNELS, StatsBase.weights(P))
+        if channel != 1
+            println("Excitation at t=$(t)\n")
+        end
         psi .= sys.Ls[channel]*psi # State without normalization
         psi .= psi / norm(psi)
         push!(traj, DetectionClick(tau, channel))
@@ -184,7 +187,25 @@ function states_at_jumps(traj::Trajectory, sys::System,
     return states
 end
 
-# ASSUMPTION: t_given is properly contained in (0, params.tf)
+"""
+
+    evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
+                       psi0::Vector{ComplexF64}) -> Array{ComplexF64}
+
+Evaluate in between jumps of the given trajectory and initial state.
+The returned states are stored in a `Array{ComplexF64}` with dimensions
+(size(t_given), sys.NLEVELS).
+
+# Arguments
+- `t_given::Vector{Float64}`: times at which the trajectory is to be evalauted
+- `traj::Trajectory`: the trajectory
+- `sys::System`: the system to which the trajectory corresponds
+- `psi0::Vector{ComplexF64}`: the initial state of the trajectory
+
+# Returns
+A complex two-dimensional array whose rows contain the states.
+"""
+
 function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
                        psi0::Vector{ComplexF64})
     psi = copy(psi0)
