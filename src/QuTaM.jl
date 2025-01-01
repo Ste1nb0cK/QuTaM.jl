@@ -1,7 +1,7 @@
 module QuTaM
 
 # Dependencies
-using LinearAlgebra, Statistics
+using LinearAlgebra, Statistics, ProgressMeter
 import Random, StatsBase
 
 # Source files

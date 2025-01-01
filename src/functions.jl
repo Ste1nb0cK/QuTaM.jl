@@ -127,11 +127,12 @@ Sample multiple trajectories for a given system and parameters.
 # Arguments
 - `sys::System`: The quantum system to simulate, containing information about its structure, energy levels, and dynamics.
 - `params::SimulParameters`: A structure containing simulation parameters such as:
+- `progbar::Bool`: show progress bar or not. `true` by default.
 
 # Returns
 - `Vector{Trajectory}`: A vector containing the results of the simulated trajectories. Each element corresponds to a single trajectory and encapsulates relevant system state information over time.
 """
-function run_trajectories(sys::System, params::SimulParameters)
+function run_trajectories(sys::System, params::SimulParameters; progbar::Bool = true)
     ## Precomputing
     t0 = eps(Float64) # To avoid having jumps at 0
     ts = collect(LinRange(t0, params.multiplier*params.tf, params.nsamples))
@@ -142,11 +143,21 @@ function run_trajectories(sys::System, params::SimulParameters)
     W = Vector{Float64}(undef, params.nsamples)
     P = Vector{Float64}(undef, sys.NCHANNELS)
     data = Vector{Trajectory}(undef, params.ntraj)
+    if progbar
+        @showprogress 1 "Sampling..." for k in 1:params.ntraj
+            data[k] = run_single_trajectory(sys, params,
+                                            W, P, psi, ts, Qs, seed = params.seed + k)
+        end
+        return data
+
+    else
     for k in 1:params.ntraj
-        data[k] = run_single_trajectory(sys, params,
-                                        W, P, psi, ts, Qs, seed = params.seed + k)
+            data[k] = run_single_trajectory(sys, params,
+                                            W, P, psi, ts, Qs, seed = params.seed + k)
+        end
+        return data
+
     end
-    return data
 end
 
 ############ Evaluation at given times #######################
@@ -184,7 +195,25 @@ function states_at_jumps(traj::Trajectory, sys::System,
     return states
 end
 
-# ASSUMPTION: t_given is properly contained in (0, params.tf)
+"""
+
+    evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
+                       psi0::Vector{ComplexF64}) -> Array{ComplexF64}
+
+Evaluate in between jumps of the given trajectory and initial state.
+The returned states are stored in a `Array{ComplexF64}` with dimensions
+(size(t_given), sys.NLEVELS).
+
+# Arguments
+- `t_given::Vector{Float64}`: times at which the trajectory is to be evalauted
+- `traj::Trajectory`: the trajectory
+- `sys::System`: the system to which the trajectory corresponds
+- `psi0::Vector{ComplexF64}`: the initial state of the trajectory
+
+# Returns
+A complex two-dimensional array whose rows contain the states.
+"""
+
 function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
                        psi0::Vector{ComplexF64})
     psi = copy(psi0)
