@@ -83,9 +83,6 @@ function run_single_trajectory(
         end
         P .= P / aux_P
         channel::Int64 = StatsBase.sample(1:sys.NCHANNELS, StatsBase.weights(P))
-        if channel != 1
-            println("Excitation at t=$(t)\n")
-        end
         psi .= sys.Ls[channel]*psi # State without normalization
         psi .= psi / norm(psi)
         push!(traj, DetectionClick(tau, channel))
@@ -134,7 +131,7 @@ Sample multiple trajectories for a given system and parameters.
 # Returns
 - `Vector{Trajectory}`: A vector containing the results of the simulated trajectories. Each element corresponds to a single trajectory and encapsulates relevant system state information over time.
 """
-function run_trajectories(sys::System, params::SimulParameters)
+function run_trajectories(sys::System, params::SimulParameters; progbar::Bool = true)
     ## Precomputing
     t0 = eps(Float64) # To avoid having jumps at 0
     ts = collect(LinRange(t0, params.multiplier*params.tf, params.nsamples))
@@ -145,11 +142,21 @@ function run_trajectories(sys::System, params::SimulParameters)
     W = Vector{Float64}(undef, params.nsamples)
     P = Vector{Float64}(undef, sys.NCHANNELS)
     data = Vector{Trajectory}(undef, params.ntraj)
-   @showprogress 1 "Sampling..." for k in 1:params.ntraj
-        data[k] = run_single_trajectory(sys, params,
-                                        W, P, psi, ts, Qs, seed = params.seed + k)
+    if progbar
+        @showprogress 1 "Sampling..." for k in 1:params.ntraj
+            data[k] = run_single_trajectory(sys, params,
+                                            W, P, psi, ts, Qs, seed = params.seed + k)
+        end
+        return data
+
+    else
+    for k in 1:params.ntraj
+            data[k] = run_single_trajectory(sys, params,
+                                            W, P, psi, ts, Qs, seed = params.seed + k)
+        end
+        return data
+
     end
-    return data
 end
 
 ############ Evaluation at given times #######################
