@@ -1,7 +1,5 @@
 # Quantum Trajectories and Metrology
-![docs](https://img.shields.io/badge/docs-maker?style=flat&color=blue&link=https%3A%2F%2Fste1nb0ck.github.io%2FQuTaM.jl%2Fdev%2Findex.html
-)
-
+[![](https://img.shields.io/badge/docs-maker?style=flat&color=blue&link=https%3A%2F%2Fste1nb0ck.github.io%2FQuTaM.jl%2Fdev%2Findex.html)](https://ste1nb0ck.github.io/QuTaM.jl/dev/index.html)
 
 See the [tutorial](https://ste1nb0ck.github.io/QuTaM.jl/dev/tutorial.html) 
 and the full documentation.
