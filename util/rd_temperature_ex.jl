@@ -8,7 +8,7 @@ rdt_sys = System( zeros(ComplexF64, 2, 2), # Hamiltonian
 #### 2. Create the simulation parameters instance
 rdt_psi0 = zeros(ComplexF64, 2)
 rdt_psi0[2] = 1 # Initial condition
-rdt_params= SimulParameters(psi0,
+rdt_params= SimulParameters(rdt_psi0,
     5.0, # Final time. Set very long so that all trajectories jump
     10, # seed
     1000, # Number of trajectories

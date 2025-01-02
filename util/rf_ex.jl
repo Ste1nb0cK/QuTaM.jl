@@ -6,12 +6,12 @@ rf_omega = 0.5 # Rabi Frequency
 rf_gamma = 0.5
 rf_H = rf_delta*sigma_z + rf_omega*sigma_x
 
-psi0 = zeros(ComplexF64, 2)
-psi0[1] = 1 # Initial condition
+rf_psi0 = zeros(ComplexF64, 2)
+rf_psi0[1] = 1 # Initial condition
 
 rf_sys = System(rf_H, # Hamiltonian
 [sqrt(rf_gamma)*sigma_m]) #Jump Operators
-rf_params = SimulParameters(psi0,
+rf_params = SimulParameters(rf_psi0,
     25.0, # Final time. Set very long so that all trajectories jump
     1, # seed
     250, # Number of trajectories

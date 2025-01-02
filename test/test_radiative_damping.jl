@@ -17,10 +17,10 @@ rd_pvalue = HypothesisTests.pvalue(
    HypothesisTests.ApproximateTwoSampleKSTest(rd_times, rand(rd_d, QuTaM.rd_params.ntraj)))
 
 @testset verbose=true "WTD (KS Test and fit)" begin
-   rd_p0WTD = 0.2 # Minimal pvalue for accepting the null hypothesis
-   fit_par = Distributions.fit(Distributions.Exponential, rd_times).θ
-   @test rd_pvalue > rd_p0WTD
-   @test abs(fit_par - 1/QuTaM.rd_gamma) < 0.1
+  rd_p0WTD = 0.2 # Minimal pvalue for accepting the null hypothesis
+  fit_par = Distributions.fit(Distributions.Exponential, rd_times).θ
+  @test rd_pvalue > rd_p0WTD
+  @test abs(fit_par - 1/QuTaM.rd_gamma) < 0.01
 end
 
 @testset verbose=true "Average and Normalization" begin
