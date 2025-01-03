@@ -10,8 +10,8 @@ include("functions.jl")
 # Utilities
 include("../util/pauli_m.jl")
 include("../util/rd_ex.jl")
-# include("../util/rd_temperature_ex.jl")
-# include("../util/rf_ex.jl")
+include("../util/rd_temperature_ex.jl")
+include("../util/rf_ex.jl")
 export
     # Structs
     System, SimulParameters, DetectionClick, Trajectory,
