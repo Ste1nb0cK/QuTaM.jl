@@ -10,7 +10,7 @@ The result is stored in the `Qs`.
 
 `sys::System`: system
 `nsamples::Int64`: number of samples
-`ts::Vector{Float64}`: fine grid vector
+`ts::Vector{Float64}`: fine grid vector. *IT IS ASSUMED HOMOGENOUS*
 `Qs::Vector{Matrix{ComplexF64}}`: vector of matrices to store the precomputation.
 """
 function precompute!(sys::System, nsamples::Int64,
@@ -34,7 +34,7 @@ Sample a single trajectory from the system and parameters using the Gillipsie al
 # Arguments:
 - `sys::System`: System of interest
 - `params::SimulParameters`: simulation parameters
-- `W::Vector{Float64}`: to store the weights over the fine grid
+- `W::Vector{Float64}`: to store the weights over the fine grid. Its lenght must be 1 more than that of ts
 - `P::Vector{Float64}`: to store the weights over the channels
 - `psi::Vector{ComplexF64}`: to store the current state vector
 - `ts::Vector{Float64}`: the finegrid of waiting times
@@ -63,14 +63,12 @@ function run_single_trajectory(
     channel = 0
     # Run the trajectory
     while t < params.tf
-        q0 = norm(exp(-1im*params.multiplier*params.tf*sys.Heff)*psi)
-
-        if q0^2 > params.eps
-            break
-        end
-        # Calculate the WTD for the state, these act as weights
+        # Calculate the probability at infinity
         for k in 1:params.nsamples
            W[k] = real(dot(psi, Qs[k]*psi))
+        end
+        if sum(W) < params.eps
+            break
         end
         # 2. Sample jump time
         tau = StatsBase.sample(ts, StatsBase.weights(W))

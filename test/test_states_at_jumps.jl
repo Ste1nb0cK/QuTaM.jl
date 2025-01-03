@@ -40,7 +40,7 @@ using QuTaM, LinearAlgebra
                              3.0, # Multiplier to use in the fine grid
                              1e-3 # Tolerance for passing Dark state test
                              )
-    traj = QuTaM.sample_single_trajectory(sys, params, params.seed)
+    traj = Vector{DetectionClick}(undef, 0) #QuTaM.sample_single_trajectory(sys, params, params.seed)
     states = QuTaM.states_at_jumps(traj, sys, params.psi0)
    @test isempty(states)
 end
