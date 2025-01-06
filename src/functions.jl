@@ -168,6 +168,8 @@ From a given trajectory, recover the states at each jump.
 - `traj::Trajectory`: Trajectory
 - `sys::System`: System of interest
 - `psi0::Vector{ComplexF64}`: Initial state
+# Optional Arguments
+- `normalize::Bool`: Whether to normalize the states or not, true by default
 
 # Returns
 `Array{ComplexF64}` with the states
@@ -176,21 +178,33 @@ The dimensions of the returned array `s` are `(size(traj), sys.NLEVELS)`,
 so to recover the state vector at the ``n``-th jump one would do `s[n, :]`.
 """
 function states_at_jumps(traj::Trajectory, sys::System,
-                      psi0::Vector{ComplexF64})
+                      psi0::Vector{ComplexF64}; normalize::Bool=true)
     njumps = size(traj)[1]
     # states = Vector{Vector{ComplexF64}}(undef, njumps)
     states = Array{ComplexF64}(undef, njumps, sys.NLEVELS)
     psi = copy(psi0)
     jump_counter = 1
-    for click in traj
-        psi .= sys.Ls[click.label] * exp(-1im*(click.time)*sys.Heff) * psi
-        psi .= psi/norm(psi)
-        for n in 1:sys.NLEVELS
-            states[jump_counter, n] = psi[n]
+    if normalize
+        for click in traj
+            psi .= sys.Ls[click.label] * exp(-1im*(click.time)*sys.Heff) * psi
+            psi .= psi/norm(psi)
+            for n in 1:sys.NLEVELS
+                states[jump_counter, n] = psi[n]
+            end
+            jump_counter = jump_counter + 1
         end
-        jump_counter = jump_counter + 1
+        return states
+    else
+        for click in traj
+            psi .= sys.Ls[click.label] * exp(-1im*(click.time)*sys.Heff) * psi
+            for n in 1:sys.NLEVELS
+                states[jump_counter, n] = psi[n]
+            end
+            jump_counter = jump_counter + 1
+        end
+        return states
+
     end
-    return states
 end
 
 """
