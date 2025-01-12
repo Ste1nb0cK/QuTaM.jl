@@ -136,11 +136,12 @@ function run_trajectories(sys::System, params::SimulParameters; progbar::Bool = 
     ts = collect(LinRange(t0, params.multiplier*params.tf, params.nsamples))
     Qs = Vector{Matrix{ComplexF64}}(undef, params.nsamples)
     precompute!(sys, params.nsamples, ts, Qs)
+    # To store the data
+    data = Vector{Trajectory}(undef, params.ntraj)
     # Running the trajectory
     psi = Vector{ComplexF64}(undef, sys.NLEVELS)
     W = Vector{Float64}(undef, params.nsamples)
     P = Vector{Float64}(undef, sys.NCHANNELS)
-    data = Vector{Trajectory}(undef, params.ntraj)
     if progbar
         @showprogress 1 "Sampling..." for k in 1:params.ntraj
             data[k] = run_single_trajectory(sys, params,
@@ -151,7 +152,10 @@ function run_trajectories(sys::System, params::SimulParameters; progbar::Bool = 
     else
     for k in 1:params.ntraj
             data[k] = run_single_trajectory(sys, params,
-                                            W, P, psi, ts, Qs, seed = params.seed + k)
+                                            W,
+                                            P,
+                                            psi,
+                                            ts, Qs, seed = params.seed + k)
         end
         return data
 
@@ -307,3 +311,106 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
     return states
 end
 
+
+function DerivativeAtJumps(traj::Trajectory, sys::System, dHe::Matrix{ComplexF64}, dLs::Vector{Matrix{ComplexF64}},
+         params::SimulParameters)
+    njumps = size(traj)[1]
+    dpsis = zeros(ComplexF64, njumps, sys.NLEVELS)
+    tmp1 = zeros(ComplexF64, sys.NLEVELS) #for the psitilde
+    tmp2 = zeros(ComplexF64, sys.NLEVELS) #for the derivative of psitilde
+    #  intialize the monitoring
+    label = traj[1].label
+    tau = traj[1].time
+    tmp1 .= params.psi0
+    #  Iterate over the clicks
+    for k in 1:njumps
+        label = traj[k].label
+        tau = traj[k].time
+        # 1. Calculate the derivative
+        tmp2 .= dLs[label]*exp(-1im*tau*sys.Heff)*tmp1 +
+                sys.Ls[label]*-1im*tau*dHe*exp(-1im*tau*sys.Heff)*tmp1+
+                sys.Ls[label]*exp(-1im*tau*sys.Heff)*tmp2
+        dpsis[k, :] = tmp2
+        # 2. Calculate the psitilde
+        tmp1 .= sys.Ls[label]*exp(-1im*tau*sys.Heff)*tmp1
+    end
+    return dpsis
+end
+
+
+function MonitoringInBetween(
+        traj::Trajectory, sys::System, dHe::Matrix{ComplexF64}, dLs::Vector{Matrix{ComplexF64}},
+         params::SimulParameters, t_given::Vector{Float64})
+    ntimes = size(t_given)[1]
+    tmp1 = zeros(ComplexF64, sys.NLEVELS)
+    psitilde = zeros(ComplexF64, sys.NLEVELS)
+    # Obtain the unnormalized jump states
+    jump_states = states_at_jumps(traj, sys, params.psi0; normalize=false)
+    inbetween_states = evaluate_at_t(t_given, traj, sys, params.psi0; normalize=false)
+    jump_dpsis= DerivativeAtJumps(traj, sys, dHe, dLs, params)
+    njumps = size(jump_states)[1]
+    t_ = 0
+    counter = 1
+    counter_c = 1
+    # Edge case: if the time array is empty, return an empty array
+    if isempty(t_given)
+        return Array{ComplexF64}(undef, 0, 0) # empty 2 dimensional array
+    end
+
+    xis = Array{ComplexF64}(undef, ntimes, sys.NLEVELS, sys.NLEVELS)
+    #Edge case: if the trajectory is empty
+     if isempty(traj)
+        while counter <= ntimes
+            # 1. Calculate the derivative
+            tmp1 .= -1im*(t_given[counter])*dHe*inbetween_states[counter, :]
+            # 2. take the outer products and normalize
+            xis[counter, :, :] = (adjoint(tmp1) .* inbetween_states[counter, : ] +
+                               adjoint(inbetween_states[counter, : ]) .* tmp1) / dot(inbetween_states[counter, :], inbetween_states[counter, :])
+            counter = counter + 1
+            if counter > ntimes
+                break
+            end
+        end
+        return xis
+    end
+    # All the xis before the first jump can be handled like this:
+    while (t_given[counter] < traj[counter_c].time) && (counter <= ntimes)
+            # 1. Calculate the derivative
+            tmp1 .= -1im*(t_given[counter])*dHe*inbetween_states[counter, :]
+            # 2. normalize and add
+            xis[counter, :, :] = (adjoint(tmp1) .* inbetween_states[counter, : ] +
+                               adjoint(inbetween_states[counter, : ]) .* tmp1) / dot(inbetween_states[counter, :], inbetween_states[counter, :])
+            counter = counter + 1
+            if counter > ntimes
+                break
+            end
+    end
+    t_ = t_ + traj[counter_c].time
+    counter_c = counter_c + 1
+    # In between jumps
+    while (counter_c <= njumps) && (counter <= ntimes)
+        timeclick = traj[counter_c].time
+        while (t_ < t_given[counter] < t_ + timeclick) && (counter <= ntimes)
+             # 1. Calculate the derivative
+             tmp1 .= -1im*(t_given[counter]-t_)*dHe*jump_states[counter_c, :] +
+                     exp(-1im*(t_given[counter]-t_)*sys.Heff)*jump_dpsis[counter_c, :]
+             xis[counter, :, :] = (adjoint(tmp1) .* inbetween_states[counter, : ] +
+                               adjoint(inbetween_states[counter, : ]) .* tmp1) / dot(inbetween_states[counter, :], inbetween_states[counter, :])
+             counter = counter + 1
+             if counter > ntimes
+                 break
+             end
+         end
+       t_ = t_ + timeclick
+       counter_c = counter_c + 1
+    end
+    # After all the jumps finished
+    while counter <= ntimes
+        tmp1 .= -1im*(t_given[counter]-t_)*dHe*inbetween_states[counter, : ] +
+               exp(-1im*(t_given[counter]-t_)*sys.Heff)*jump_dpsis[end, :]
+         xis[counter, :, :] = (adjoint(tmp1) .* inbetween_states[counter, : ] +
+                               adjoint(inbetween_states[counter, : ]) .* tmp1) / dot(inbetween_states[counter, :], inbetween_states[counter, :])
+        counter = counter + 1
+    end
+    return xis
+end

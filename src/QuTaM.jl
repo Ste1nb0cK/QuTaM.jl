@@ -1,7 +1,7 @@
 module QuTaM
 
 # Dependencies
-using LinearAlgebra, Statistics, ProgressMeter
+using LinearAlgebra, Statistics, ProgressMeter, Base.Threads
 import Random, StatsBase
 
 # Source files
@@ -19,5 +19,6 @@ export
     run_trajectories,
     sample_single_trajectory,
     evaluate_at_t,
-    states_at_jumps
+    states_at_jumps,
+    MonitoringInBetween
 end
