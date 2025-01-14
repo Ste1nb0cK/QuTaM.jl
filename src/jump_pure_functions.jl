@@ -1,26 +1,3 @@
-############# Precomputation routine ######################
-"""
-
-    precompute!(sys::System, nsamples::Int64,
-         ts::Vector{Float64}, Qs::Vector{Matrix{ComplexF64}})
-
-Does the precomputation routine for the Gillipsie algorithm.
-The result is stored in the `Qs`.
-# Arguments
-
-`sys::System`: system
-`nsamples::Int64`: number of samples
-`ts::Vector{Float64}`: fine grid vector. *IT IS ASSUMED HOMOGENOUS*
-`Qs::Vector{Matrix{ComplexF64}}`: vector of matrices to store the precomputation.
-"""
-function precompute!(sys::System, nsamples::Int64,
-         ts::Vector{Float64}, Qs::Vector{Matrix{ComplexF64}})
-        for k in 1:nsamples
-            expm = exp(-1im*ts[k]*sys.Heff)
-            Qs[k] = expm * sys.J * adjoint(expm)
-        end
-    return
-end
 ############# Single Trajectory Routine ######################
 """
     run_single_trajectories(sys::System, params::SimulParameters,
@@ -34,7 +11,7 @@ Sample a single trajectory from the system and parameters using the Gillipsie al
 # Requiered Arguments:
 - `sys::System`: System of interest
 - `params::SimulParameters`: simulation parameters
-- `W::Vector{Float64}`: to store the weights over the fine grid. Its lenght must be 1 more than that of ts
+- `W::Vector{Float64}`: to store the weights over the fine grid.
 - `P::Vector{Float64}`: to store the weights over the channels
 - `psi::Vector{ComplexF64}`: to store the current state vector
 - `ts::Vector{Float64}`: the finegrid of waiting times
@@ -56,9 +33,8 @@ function run_single_trajectory(
     sys::System,
     params::SimulParameters,
     W::Vector{Float64}, P::Vector{Float64}, psi::Vector{ComplexF64}, ts::Vector{Float64},
-    Qs::Vector{Matrix{ComplexF64}}; seed::Int64 = 1, return_states::Bool = true)
+    Qs::Vector{Matrix{ComplexF64}}; seed::Int64 = 1)
     # Random number generator
-    states =
     Random.seed!(seed)
     traj = Vector{DetectionClick}()
     psi .= params.psi0
@@ -89,80 +65,6 @@ function run_single_trajectory(
         push!(traj, DetectionClick(tau, channel))
     end
     return traj
-end
-
-"""
-
-    sample_single_trajectory(sys::System, params::SimulParameters, seed::Int64) -> Vector{Trajectory}
-
-Sample a single trajectory. This is inteded to be used in case a single sample is needed without
-redefining `params.ntraj`.
-
-# Arguments
-- `sys::System`
-- `params::SimulParameters`
-- `seed::Int64`
-
-# Returnrs
-A 1-element trajectory vector.
-"""
-function sample_single_trajectory(sys::System, params::SimulParameters, seed::Int64)
-    ## Precomputing
-    ts = collect(LinRange(0, params.multiplier*params.tf, params.nsamples))
-    Qs = Vector{Matrix{ComplexF64}}(undef, params.nsamples)
-    precompute!(sys, params.nsamples, ts, Qs)
-    # Running the trajectory
-    psi = Vector{ComplexF64}(undef, sys.NLEVELS)
-    W = Vector{Float64}(undef, params.nsamples)
-    P = Vector{Float64}(undef, sys.NCHANNELS)
-    data = run_single_trajectory(sys, params,
-                                W, P, psi, ts, Qs, seed = seed)
-    return data
-end
-
-"""
-    run_trajectories(sys::System, params::SimulParameters) -> Vector{Trajectory}
-
-Sample multiple trajectories for a given system and parameters.
-
-# Arguments
-- `sys::System`: The quantum system to simulate, containing information about its structure, energy levels, and dynamics.
-- `params::SimulParameters`: A structure containing simulation parameters such as:
-- `progbar::Bool`: show progress bar or not. `true` by default.
-
-# Returns
-- `Vector{Trajectory}`: A vector containing the results of the simulated trajectories. Each element corresponds to a single trajectory and encapsulates relevant system state information over time.
-"""
-function run_trajectories(sys::System, params::SimulParameters; progbar::Bool = true)
-    ## Precomputing
-    t0 = eps(Float64) # To avoid having jumps at 0
-    ts = collect(LinRange(t0, params.multiplier*params.tf, params.nsamples))
-    Qs = Vector{Matrix{ComplexF64}}(undef, params.nsamples)
-    precompute!(sys, params.nsamples, ts, Qs)
-    # To store the data
-    data = Vector{Trajectory}(undef, params.ntraj)
-    # Running the trajectory
-    psi = Vector{ComplexF64}(undef, sys.NLEVELS)
-    W = Vector{Float64}(undef, params.nsamples)
-    P = Vector{Float64}(undef, sys.NCHANNELS)
-    if progbar
-        @showprogress 1 "Sampling..." for k in 1:params.ntraj
-            data[k] = run_single_trajectory(sys, params,
-                                            W, P, psi, ts, Qs, seed = params.seed + k)
-        end
-        return data
-
-    else
-    for k in 1:params.ntraj
-            data[k] = run_single_trajectory(sys, params,
-                                            W,
-                                            P,
-                                            psi,
-                                            ts, Qs, seed = params.seed + k)
-        end
-        return data
-
-    end
 end
 
 ############ Evaluation at given times #######################

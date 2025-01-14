@@ -1,4 +1,5 @@
-using QuTaM, LinearAlgebra
+using QuTaM, LinearAlgebra, Test
+
 @testset "States at Jumps" begin
     ############### Check sizes match for multiple jumps
     sys = QuTaM.rdt_sys

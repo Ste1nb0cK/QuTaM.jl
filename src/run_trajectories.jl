@@ -1,0 +1,44 @@
+"""
+    run_trajectories(sys::System, params::SimulParameters) -> Vector{Trajectory}
+
+Sample multiple trajectories for a given system and parameters.
+
+# Arguments
+- `sys::System`: The quantum system to simulate, containing information about its structure, energy levels, and dynamics.
+- `params::SimulParameters`: A structure containing simulation parameters such as:
+- `progbar::Bool`: show progress bar or not. `true` by default.
+
+# Returns
+- `Vector{Trajectory}`: A vector containing the results of the simulated trajectories. Each element corresponds to a single trajectory and encapsulates relevant system state information over time.
+"""
+function run_trajectories(sys::System, params::SimulParameters; progbar::Bool = true)
+    ## Precomputing
+    t0 = eps(Float64) # To avoid having jumps at 0
+    ts = collect(LinRange(t0, params.multiplier*params.tf, params.nsamples))
+    Qs = Vector{Matrix{ComplexF64}}(undef, params.nsamples)
+    precompute!(sys, params.nsamples, ts, Qs)
+    # To store the data
+    data = Vector{Trajectory}(undef, params.ntraj)
+    # Running the trajectory
+    psi = copy(params.psi0)
+    W = Vector{Float64}(undef, params.nsamples)
+    P = Vector{Float64}(undef, sys.NCHANNELS)
+    if progbar
+        @showprogress 1 "Sampling..." for k in 1:params.ntraj
+            data[k] = run_single_trajectory(sys, params,
+                                            W, P, psi, ts, Qs, seed = params.seed + k)
+        end
+        return data
+
+    else
+    for k in 1:params.ntraj
+            data[k] = run_single_trajectory(sys, params,
+                                            W,
+                                            P,
+                                            psi,
+                                            ts, Qs, seed = params.seed + k)
+        end
+        return data
+
+    end
+end
