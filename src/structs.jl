@@ -73,7 +73,7 @@ const Trajectory = Vector{DetectionClick}
 """
 
     SimulParameters(
-        psi0::Vector{ComplexF64}, nsamples::Int64, seed::Int64,
+        psi0::Array{ComplexF64}, nsamples::Int64, seed::Int64,
                 ntraj::Int64, multiplier::Float64, tf::Float64,
                 dt::Float64, eps::Float64)
 
@@ -82,7 +82,7 @@ A `mutable struct` containing all the necessary information for running the
 the simulation.
 
 # Fields
-- `psi0::Vector{ComplexF64}`: Initial state vector
+- `psi0::Array{ComplexF64}`: Initial state, mixed or pure.
 - `nsamples::Int64`: Number of samples in the finegrid
 - `seed::Int64`: seed
 - `ntraj::Int64`: Number of trajectories
@@ -103,7 +103,7 @@ resolving the statistical details of the WTD, this grid is taken in the interval
 `(0, tf*multiplier)`.
 """
 mutable struct SimulParameters
-    psi0::Vector{ComplexF64}
+    psi0::Array{ComplexF64}
     nsamples::Int64 # Number of samples in the finegrid
     seed::Int64 # seed
     ntraj::Int64 # Number of trajectories

@@ -6,7 +6,7 @@ import Random, StatsBase
 
 # Source files
 include("structs.jl")
-include("functions.jl")
+include("jump_pure_functions.jl")
 # Utilities
 include("../util/pauli_m.jl")
 include("../util/rd_ex.jl")

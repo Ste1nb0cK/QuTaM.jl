@@ -58,6 +58,7 @@ function run_single_trajectory(
     W::Vector{Float64}, P::Vector{Float64}, psi::Vector{ComplexF64}, ts::Vector{Float64},
     Qs::Vector{Matrix{ComplexF64}}; seed::Int64 = 1, return_states::Bool = true)
     # Random number generator
+    states =
     Random.seed!(seed)
     traj = Vector{DetectionClick}()
     psi .= params.psi0
