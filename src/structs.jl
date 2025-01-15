@@ -118,7 +118,7 @@ mutable struct SimulParameters
     @doc "Inner constructor of `SimulParameters` SimulParameters(psi0::Vector{ComplexF64}, tf::Float64,
         s::Int64, ntraj::Int64, nsamples::Int64=10000, m::Float64=10.0,
                              eps::Float64=1e-3)"
-    function SimulParameters(psi0::Vector{ComplexF64}, tf::Float64,
+    function SimulParameters(psi0::Array{ComplexF64}, tf::Float64,
         s::Int64, ntraj::Int64, nsamples::Int64=10000, m::Float64=10.0,
                              eps::Float64=1e-3)
         deltat = m*tf/nsamples
