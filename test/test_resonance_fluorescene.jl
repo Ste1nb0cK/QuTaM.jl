@@ -4,9 +4,6 @@ using QuTaM, LinearAlgebra, Statistics, Random, QuadGK, Test, Plots,
 ########## Setup
 sys = QuTaM.rf_sys
 params = QuTaM.rf_params
-gamma = QuTaM.rf_gamma
-delta = QuTaM.rf_delta
-omega = QuTaM.rf_omega
 r0 = [0.0; 0.0; -1.0] # Initial Condition
 tspan = (0.0, params.tf)
 t_given = collect(LinRange(0, params.tf, 1000));
@@ -71,13 +68,14 @@ function Distributions.support(d::WTD_rf)
 end
 
 function Distributions.pdf(d::WTD_rf, tau::Real)
-        # Replace with your custom formula
         gamma = d.gamma
         omega = d.omega
         return (16*gamma*omega^2)*exp(-0.5*gamma*tau) * sin(0.25*tau*sqrt(16*omega^2-gamma^2))^2/(-gamma^2+16*omega^2)
     end
 
 function Distributions.cdf(d::WTD_rf, t::Real)
+    gamma = d.gamma
+    omega = d.omega
     pdf(tau) = (16*gamma*omega^2)*exp(-0.5*gamma*tau) * sin(0.25*tau*sqrt(16*omega^2-gamma^2))^2/(-gamma^2+16*omega^2)
     return quadgk(pdf, 0, t, rtol=1e-8)[1]
 end
@@ -93,7 +91,7 @@ function Base.rand(rng::AbstractRNG, d::WTD_rf)
     return t  # Return a sample
 end
 
-f = WTD_rf(gamma, omega) # Instance of the WTD
+f = WTD_rf(QuTaM.rf_gamma, QuTaM.rf_omega) # Instance of the WTD
 println("Sampling from the analytical WTD\n")
 @time begin
     f_sample = rand(f, 500) # Sample from the WTD
@@ -110,7 +108,6 @@ rf_p0WTD = 0.2 # Minimal pvalue for accepting the null hypothesis
 end
 
 ################# Visual test of the WTD #############
-WTD_analytical(tau) =  (16*gamma*omega^2)*exp(-0.5*gamma*tau) * sin(0.25*tau*sqrt(16*omega^2-gamma^2))^2/(-gamma^2+16*omega^2)
 hist = histogram(tau_sample, normalize=:pdf, label="Sample")
 plot!(t_given, Distributions.pdf.(f, t_given), label="Analytical")
 ################ Visual test of the observables

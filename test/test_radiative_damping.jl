@@ -23,39 +23,38 @@ rd_pvalue = HypothesisTests.pvalue(
   @test abs(fit_par - 1/QuTaM.rd_gamma) < 0.01
 end
 
-@testset verbose=true "Average and Normalization" begin
-    sys = QuTaM.rd_sys
-    params = QuTaM.rd_params
-    # Now from each trajectory, generate the states at the given times
-    sample_clicks = QuTaM.run_trajectories(sys, params)
-    ntimes = 1000
-    t = collect(LinRange(0, params.tf, ntimes))
-    sample = Array{ComplexF64}(undef, params.ntraj, ntimes, sys.NLEVELS );
-    for n in 1:params.ntraj
-        sample[n, :, :] = QuTaM.evaluate_at_t(t, sample_clicks[n], sys,  params.psi0)
-    end
-    # Check that all states are normalized
-    flag = true
-    for k in 1:ntimes
-        for n in 1:params.ntraj
-            if (norm(sample[n, k, :]) - 1) > 0.01
-                flag = !flag
-                break
-            end
-        end
-    end
-    @test flag
-    # Check
-    accepted_error = 0.1 # Accept a relative accumulated error of up to 10%
-    # Obtain the observable on the sample
-    x_sample = zeros(ComplexF64, params.ntraj, ntimes)
-    for tn in 1:ntimes
-        for k in 1:params.ntraj
-            x_sample[k, tn] = dot(sample[k, tn, :], QuTaM.sigma_z * sample[k, tn, :])   # Drop the extra dimension
-        end
-    end
-    x = real(dropdims( mean(x_sample, dims=1), dims=1));
-    x_theo = 2*exp.(-QuTaM.rd_gamma.*t).-1
-    error = sum(abs.( (x - x_theo) ./ x_theo)) / (sum(abs.(x_theo)))
-    @test error < accepted_error
+sys = QuTaM.rd_sys
+params = QuTaM.rd_params
+# Now from each trajectory, generate the states at the given times
+sample_clicks = QuTaM.run_trajectories(sys, params)
+ntimes = 1000
+t = collect(LinRange(0, params.tf, ntimes))
+sample = Array{ComplexF64}(undef, params.ntraj, ntimes, sys.NLEVELS );
+for n in 1:params.ntraj
+    sample[n, :, :] = QuTaM.evaluate_at_t(t, sample_clicks[n], sys,  params.psi0)
 end
+# Check that all states are normalized
+global local_flag = true
+for k in 1:ntimes
+    for n in 1:params.ntraj
+        if (norm(sample[n, k, :]) - 1) > 0.01
+            global local_flag = false
+            break
+        end
+    end
+end
+# Check
+accepted_error = 0.1 # Accept a relative accumulated error of up to 10%
+# Obtain the observable on the sample
+x_sample = zeros(ComplexF64, params.ntraj, ntimes)
+for tn in 1:ntimes
+    for k in 1:params.ntraj
+        x_sample[k, tn] = dot(sample[k, tn, :], QuTaM.sigma_z * sample[k, tn, :])   # Drop the extra dimension
+    end
+end
+x = real(dropdims( mean(x_sample, dims=1), dims=1));
+x_theo = 2*exp.(-QuTaM.rd_gamma.*t).-1
+error = sum(abs.( (x - x_theo) ./ x_theo)) / (sum(abs.(x_theo)))
+
+@test local_flag
+@test error < accepted_error

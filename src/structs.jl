@@ -27,6 +27,7 @@ mutable struct System
     NCHANNELS::Int64 # Number of jump channels
     H::Matrix{ComplexF64} # Hamiltonian
     Ls::Vector{Matrix{ComplexF64}} # List of jump operators
+    LLs::Vector{Matrix{ComplexF64}} # List of L^\daggerL
     J::Matrix{ComplexF64} # Sum of Jump operators
     Heff::Matrix{ComplexF64} # Effective Hamiltonian
     @doc "
@@ -39,12 +40,15 @@ mutable struct System
         NLEVELS = size(H)[1]
         NCHANNELS = size(Ls)[1] # Number of jump channels
         J = zeros(ComplexF64, NLEVELS, NLEVELS)
-        for L in Ls
-            J = J + adjoint(L)*L
+        LLs = Vector{Matrix{ComplexF64}}(undef, NCHANNELS)
+        for k in 1:NCHANNELS
+            product = adjoint(Ls[k])*Ls[k]
+            J = J + product
+            LLs[k] = product
         end
         CurvyLs = Vector{Function}(undef, NCHANNELS)
        He = H - 0.5im*J
-       new(NLEVELS, NCHANNELS, H, Ls, J, He)
+       new(NLEVELS, NCHANNELS, H, Ls, LLs, J, He)
     end
 end
 Base.show(io::IO, s::System) = print(io,
@@ -73,7 +77,7 @@ const Trajectory = Vector{DetectionClick}
 """
 
     SimulParameters(
-        psi0::Vector{ComplexF64}, nsamples::Int64, seed::Int64,
+        psi0::Array{ComplexF64}, nsamples::Int64, seed::Int64,
                 ntraj::Int64, multiplier::Float64, tf::Float64,
                 dt::Float64, eps::Float64)
 
@@ -82,7 +86,7 @@ A `mutable struct` containing all the necessary information for running the
 the simulation.
 
 # Fields
-- `psi0::Vector{ComplexF64}`: Initial state vector
+- `psi0::Array{ComplexF64}`: Initial state, mixed or pure.
 - `nsamples::Int64`: Number of samples in the finegrid
 - `seed::Int64`: seed
 - `ntraj::Int64`: Number of trajectories
@@ -103,7 +107,7 @@ resolving the statistical details of the WTD, this grid is taken in the interval
 `(0, tf*multiplier)`.
 """
 mutable struct SimulParameters
-    psi0::Vector{ComplexF64}
+    psi0::Array{ComplexF64}
     nsamples::Int64 # Number of samples in the finegrid
     seed::Int64 # seed
     ntraj::Int64 # Number of trajectories
@@ -114,7 +118,7 @@ mutable struct SimulParameters
     @doc "Inner constructor of `SimulParameters` SimulParameters(psi0::Vector{ComplexF64}, tf::Float64,
         s::Int64, ntraj::Int64, nsamples::Int64=10000, m::Float64=10.0,
                              eps::Float64=1e-3)"
-    function SimulParameters(psi0::Vector{ComplexF64}, tf::Float64,
+    function SimulParameters(psi0::Array{ComplexF64}, tf::Float64,
         s::Int64, ntraj::Int64, nsamples::Int64=10000, m::Float64=10.0,
                              eps::Float64=1e-3)
         deltat = m*tf/nsamples
