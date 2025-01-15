@@ -157,7 +157,7 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
     # Edge case: if the trajectory is empty, evaluate exponentials and return
     if isempty(traj)
         while counter <= ntimes
-            psi .= exp(-1im*(t_given[counter])*sys.Heff) * psi
+            psi .= exp(-1im*(t_given[counter])*sys.Heff) * psi0
             if normalize
                 psi .= psi/norm(psi)
             end

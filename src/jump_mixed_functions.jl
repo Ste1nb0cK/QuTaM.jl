@@ -157,7 +157,7 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
     if isempty(traj)
         while counter <= ntimes
             expm = exp(-1im*(t_given[counter])*sys.Heff)
-            psi .= expm * psi * adjoint(expm)
+            psi .= expm * psi0 * adjoint(expm)
             if normalize
                 psi .= psi/tr(psi)
             end
@@ -204,7 +204,7 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
 
     while counter <= ntimes
         expm = exp(-1im*(t_given[counter] - t_)*sys.Heff)
-        psi .= expm * jump_states[njumps, :] * adjoint(expm)
+        psi .= expm * jump_states[njumps, :, :] * adjoint(expm)
         if normalize
             psi .= psi/tr(psi)
         end
