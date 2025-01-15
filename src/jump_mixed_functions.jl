@@ -57,7 +57,7 @@ function run_single_trajectory(
         # 3. Sample the channel
         aux_P = real(tr(sys.J * psi))
         for k in 1:sys.NCHANNELS
-            P[k] = tr(sys.LLs[k]*psi)^2
+            P[k] = real(tr(sys.LLs[k]*psi))^2
         end
         P .= P / aux_P
         channel::Int64 = StatsBase.sample(1:sys.NCHANNELS, StatsBase.weights(P))
