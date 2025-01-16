@@ -90,7 +90,7 @@ function states_at_jumps(traj::Trajectory, sys::System,
                       psi0::Vector{ComplexF64}; normalize::Bool=true)
     njumps = size(traj)[1]
     # states = Vector{Vector{ComplexF64}}(undef, njumps)
-    states = Array{ComplexF64}(undef, njumps, sys.NLEVELS)
+    states = Array{ComplexF64}(undef, sys.NLEVELS,  njumps)
     psi = copy(psi0)
     jump_counter = 1
     if normalize

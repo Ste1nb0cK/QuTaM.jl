@@ -1,7 +1,7 @@
 ################ SETUP FOR QUBIT RADIATIVE DAMPING ##################
 
 rd_EPS = 1e-5 # Tolerance for the distance respect to the Frobenious norm
-rd_deltaomega = #10.0
+rd_deltaomega = 1.3
 rd_gamma = 3.0
 rd_H = 0.5*rd_deltaomega * sigma_z
 rd_L = sqrt(rd_gamma) * sigma_m
