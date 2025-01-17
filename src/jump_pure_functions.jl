@@ -135,19 +135,17 @@ A complex two-dimensional array whose rows contain the states.
 function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
                        psi0::Vector{ComplexF64};
                        normalize::Bool=true)
-    psi = copy(psi0)
-    ntimes = size(t_given)[1]
-
-    jump_states = states_at_jumps(traj, sys, psi0; normalize=normalize)
-    njumps = size(jump_states)[1]
-    t_ = 0
-    counter = 1
-    counter_c = 1
     # Special case: if the time array is empty, return an empty array
     if isempty(t_given)
         return Array{ComplexF64}(undef, 0, 0) # empty 2 dimensional array
     end
-
+    psi = copy(psi0)
+    ntimes = size(t_given)[1]
+    jump_states = states_at_jumps(traj, sys, psi0; normalize=normalize)
+    njumps = size(traj)[1]
+    t_ = 0
+    counter = 1
+    counter_c = 1
     states = Array{ComplexF64}(undef, ntimes, sys.NLEVELS)
 
     # Edge case: if the trajectory is empty, evaluate exponentials and return
@@ -157,9 +155,7 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
             if normalize
                 psi .= psi/norm(psi)
             end
-            for k in 1:sys.NLEVELS
-                states[counter, k] = psi[k]
-            end
+            states[counter, :] = psi[:]
             counter = counter + 1
             if counter > ntimes
                 break
@@ -173,9 +169,7 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
             if normalize
                 psi .= psi/norm(psi)
             end
-            for k in 1:sys.NLEVELS
-                states[counter, k] = psi[k]
-            end
+            states[counter, :] = psi[:]
             counter = counter + 1
             if counter > ntimes
                 break
@@ -186,13 +180,11 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
     while (counter_c <= njumps) && (counter <= ntimes)
         timeclick = traj[counter_c].time
         while (t_ < t_given[counter] < t_ + timeclick) && (counter <= ntimes)
-             psi .= exp(-1im*(t_given[counter] - t_)*sys.Heff) * jump_states[counter_c-1, :]
+             psi .= exp(-1im*(t_given[counter] - t_)*sys.Heff) * jump_states[:, counter_c-1]
              if normalize
              psi .= psi/norm(psi)
              end
-             for k in 1:sys.NLEVELS
-                 states[counter, k] = psi[k]
-             end
+             states[counter, :] .= psi[:]
              counter = counter + 1
              if counter > ntimes
                  break
@@ -203,13 +195,11 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
     end
 
     while counter <= ntimes
-        psi .= exp(-1im*(t_given[counter] - t_)*sys.Heff) * jump_states[njumps, :]
+        psi .= exp(-1im*(t_given[counter] - t_)*sys.Heff) * jump_states[:, njumps]
         if normalize
             psi .= psi/norm(psi)
         end
-        for k in 1:sys.NLEVELS
-            states[counter, k] = psi[k]
-        end
+        states[counter, :] = psi[:]
         counter = counter + 1
     end
     return states

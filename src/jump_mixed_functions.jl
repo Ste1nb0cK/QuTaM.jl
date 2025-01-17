@@ -142,7 +142,7 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
     ntimes = size(t_given)[1]
 
     jump_states = states_at_jumps(traj, sys, psi0; normalize=normalize)
-    njumps = size(jump_states)[1]
+    njumps = size(traj)[1]
     t_ = 0
     counter = 1
     counter_c = 1
@@ -188,7 +188,7 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
         timeclick = traj[counter_c].time
         while (t_ < t_given[counter] < t_ + timeclick) && (counter <= ntimes)
              expm = exp(-1im*(t_given[counter] - t_)*sys.Heff)
-             psi .= expm * jump_states[counter_c-1, :, :] * adjoint(expm)
+             psi .= expm * jump_states[:, :, counter_c-1] * adjoint(expm)
              if normalize
              psi .= psi/tr(psi)
              end
@@ -204,7 +204,7 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
 
     while counter <= ntimes
         expm = exp(-1im*(t_given[counter] - t_)*sys.Heff)
-        psi .= expm * jump_states[njumps, :, :] * adjoint(expm)
+        psi .= expm * jump_states[:, :, njumps] * adjoint(expm)
         if normalize
             psi .= psi/tr(psi)
         end
