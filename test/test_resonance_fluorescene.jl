@@ -15,17 +15,13 @@ println("Sampling clicks\n")
     sample_clicks = QuTaM.run_trajectories(sys, params)
 end
 ntimes = size(t_given)[1]
-sample = zeros(ComplexF64, ntimes, sys.NLEVELS, params.ntraj) # states
+sample = zeros(ComplexF64,  sys.NLEVELS, ntimes, params.ntraj) # states
 
 println("Obtaining states between jumps\n")
 @time begin
     for n in 1:params.ntraj
         states = QuTaM.evaluate_at_t(t_given, sample_clicks[n], sys,  params.psi0)
-        for j in 1:sys.NLEVELS
-            for tn in 1:ntimes
-                sample[tn, j, n] = states[tn, j]
-            end
-        end
+                sample[:, :, n] = states[:, :]
     end
 end
 # Obtain the value of the observables
@@ -37,7 +33,7 @@ println("Calculating expectation of observables\n")
     for j in 1:params.ntraj
         for k in 1:3
             for tn in 1:ntimes
-                r_sample[tn, k, j] = dot(sample[tn, :, j], sigma[k] * sample[tn, :, j])   # Drop the extra dimension
+                r_sample[tn, k, j] = dot(sample[:, tn, j], sigma[k] * sample[:, tn, j])   # Drop the extra dimension
             end
         end
     end

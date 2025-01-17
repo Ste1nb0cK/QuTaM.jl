@@ -71,7 +71,7 @@ sol = solve(prob, reltol = 1e-6, saveat = t_given);
 
 # Obtain the states between jumps
 ntimes = size(t_given)[1]
-sample = zeros(ComplexF64, ntimes, sys.NLEVELS, sys.NLEVELS, params.ntraj)
+sample = zeros(ComplexF64, sys.NLEVELS, sys.NLEVELS, ntimes, params.ntraj)
 for n in 1:params.ntraj
     sample[:, :, :, n]  = QuTaM.evaluate_at_t(t_given, sampled_trajectories[n], sys,  params.psi0)
 end
@@ -82,7 +82,7 @@ r_sample = zeros(Float64, ntimes, 3, params.ntraj)
 for j in 1:params.ntraj
     for k in 1:3
         for tn in 1:ntimes
-                r_sample[tn, k, j] = real( tr(sigma[k] * sample[tn, :, :, j]) )
+                r_sample[tn, k, j] = real( tr(sigma[k] * sample[:, :, tn, j]) )
         end
     end
 end

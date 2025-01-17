@@ -146,7 +146,7 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
     t_ = 0
     counter = 1
     counter_c = 1
-    states = Array{ComplexF64}(undef, ntimes, sys.NLEVELS)
+    states = Array{ComplexF64}(undef, sys.NLEVELS, ntimes)
 
     # Edge case: if the trajectory is empty, evaluate exponentials and return
     if isempty(traj)
@@ -155,7 +155,7 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
             if normalize
                 psi .= psi/norm(psi)
             end
-            states[counter, :] = psi[:]
+            states[:, counter] = psi[:]
             counter = counter + 1
             if counter > ntimes
                 break
@@ -169,7 +169,7 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
             if normalize
                 psi .= psi/norm(psi)
             end
-            states[counter, :] = psi[:]
+            states[:, counter] = psi[:]
             counter = counter + 1
             if counter > ntimes
                 break
@@ -184,7 +184,7 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
              if normalize
              psi .= psi/norm(psi)
              end
-             states[counter, :] .= psi[:]
+             states[:, counter] .= psi[:]
              counter = counter + 1
              if counter > ntimes
                  break
@@ -199,7 +199,7 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
         if normalize
             psi .= psi/norm(psi)
         end
-        states[counter, :] = psi[:]
+        states[:, counter] = psi[:]
         counter = counter + 1
     end
     return states
