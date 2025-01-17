@@ -90,7 +90,7 @@ so to recover the state vector at the ``n``-th jump one would do `s[n, :]`.
 function states_at_jumps(traj::Trajectory, sys::System,
                       psi0::Matrix{ComplexF64}; normalize::Bool=true)
     njumps = size(traj)[1]
-    states = Array{ComplexF64}(undef, njumps, sys.NLEVELS, sys.NLEVELS)
+    states = Array{ComplexF64}(undef, sys.NLEVELS, sys.NLEVELS, njumps)
     psi = copy(psi0)
     jump_counter = 1
 
@@ -99,7 +99,7 @@ function states_at_jumps(traj::Trajectory, sys::System,
             A = sys.Ls[click.label] * exp(-1im*(click.time)*sys.Heff)
             psi .=  A * psi * adjoint(A)
             psi .= psi/tr(psi)
-            states[jump_counter, :, :] = psi[:, :]
+            states[:, :, jump_counter] = psi[:, :]
             jump_counter = jump_counter + 1
         end
         return states
@@ -108,7 +108,7 @@ function states_at_jumps(traj::Trajectory, sys::System,
         for click in traj
             A = sys.Ls[click.label] * exp(-1im*(click.time)*sys.Heff)
             psi .=  A * psi * adjoint(A)
-            states[jump_counter, :, :] = psi[:, :]
+            states[:, :, jump_counter] = psi[:, :]
             jump_counter = jump_counter + 1
         end
         return states

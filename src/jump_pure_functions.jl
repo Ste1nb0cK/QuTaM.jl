@@ -83,8 +83,8 @@ From a given trajectory, recover the states at each jump.
 # Returns
 `Array{ComplexF64}` with the states
 
-The dimensions of the returned array `s` are `(size(traj), sys.NLEVELS)`,
-so to recover the state vector at the ``n``-th jump one would do `s[n, :]`.
+The dimensions of the returned array `s` are `(sys.NLEVELS, size(traj))`,
+so to recover the state vector at the ``n``-th jump one would do `s[:, n]`.
 """
 function states_at_jumps(traj::Trajectory, sys::System,
                       psi0::Vector{ComplexF64}; normalize::Bool=true)
@@ -97,18 +97,14 @@ function states_at_jumps(traj::Trajectory, sys::System,
         for click in traj
             psi .= sys.Ls[click.label] * exp(-1im*(click.time)*sys.Heff) * psi
             psi .= psi/norm(psi)
-            for n in 1:sys.NLEVELS
-                states[jump_counter, n] = psi[n]
-            end
+            states[:, jump_counter] = psi[:]
             jump_counter = jump_counter + 1
         end
         return states
     else
         for click in traj
             psi .= sys.Ls[click.label] * exp(-1im*(click.time)*sys.Heff) * psi
-            for n in 1:sys.NLEVELS
-                states[jump_counter, n] = psi[n]
-            end
+            states[:, jump_counter] = psi[:]
             jump_counter = jump_counter + 1
         end
         return states
