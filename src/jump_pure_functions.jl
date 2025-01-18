@@ -15,7 +15,7 @@ Sample a single trajectory from the system and parameters using the Gillipsie al
 - `P::Vector{Float64}`: to store the weights over the channels
 - `psi::Vector{ComplexF64}`: to store the current state vector
 - `ts::Vector{Float64}`: the finegrid of waiting times
-- `Qs::Vector{Matrix{ComplexF64}}`: to store the precomputed values
+- `Qs::Vector{Matrix{ComplexF64}}`: 3-dimensional array for storing, dimensions must be (sys.NLEVELS, sys.NLEVELS, nsamples)
 
 # Optional Arguments:
 - `seed::Int64`: seed for generating the trajectory
@@ -32,19 +32,19 @@ trajectory always happen after the set final time.
 function run_single_trajectory(
     sys::System,
     params::SimulParameters,
-    W::Vector{Float64}, P::Vector{Float64}, psi::Vector{ComplexF64}, ts::Vector{Float64},
-    Qs::Vector{Matrix{ComplexF64}}; seed::Int64 = 1)
+    W::Vector{Float64}, P::Vector{Float64}, ts::Vector{Float64},
+    Qs::Array{ComplexF64}; seed::Int64 = 1)
     # Random number generator
     Random.seed!(seed)
     traj = Vector{DetectionClick}()
-    psi .= params.psi0
+    psi = copy(params.psi0)
     t::Float64 = 0
     channel = 0
     # Run the trajectory
     while t < params.tf
         # Calculate the probability at infinity
-        for k in 1:params.nsamples
-           W[k] = real(dot(psi, Qs[k]*psi))
+        @inbounds @simd for k in 1:params.nsamples
+           W[k] = real(dot(psi, Qs[:,:, k]*psi))
         end
         if sum(W) < params.eps
             break
@@ -55,7 +55,7 @@ function run_single_trajectory(
         psi .= exp(-1im*tau*sys.Heff) * psi
         # 3. Sample the channel
         aux_P = real(dot(psi, sys.J * psi))
-        for k in 1:sys.NCHANNELS
+        @inbounds @simd for k in 1:sys.NCHANNELS
             P[k] = norm(sys.Ls[k]*psi)^2
         end
         P .= P / aux_P
@@ -199,7 +199,7 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
         if normalize
             psi .= psi/norm(psi)
         end
-        states[:, counter] = psi[:]
+        states[ :, counter] = psi[:]
         counter = counter + 1
     end
     return states

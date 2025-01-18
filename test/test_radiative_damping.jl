@@ -9,12 +9,14 @@ using Test, QuTaM, Statistics, LinearAlgebra
 
 ########### WTD ######################################
 # Data generation
+@time begin
 rd_data = run_trajectories(QuTaM.rd_sys, QuTaM.rd_params)
+end
 rd_times = [rd_data[k][1].time for k in 1:QuTaM.rd_params.ntraj if !isempty(rd_data[k])]
 rd_d = Distributions.Exponential(1/QuTaM.rd_gamma)
 ## Use a two sample Kolmogorov-Smirnov test, pvalue above 0.2 is accepted
 rd_pvalue = HypothesisTests.pvalue(
-   HypothesisTests.ApproximateTwoSampleKSTest(rd_times, rand(rd_d, QuTaM.rd_params.ntraj)))
+HypothesisTests.ApproximateTwoSampleKSTest(rd_times, rand(rd_d, QuTaM.rd_params.ntraj)))
 
 @testset verbose=true "WTD (KS Test and fit)" begin
   rd_p0WTD = 0.2 # Minimal pvalue for accepting the null hypothesis

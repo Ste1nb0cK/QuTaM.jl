@@ -1,5 +1,4 @@
-"""
-    run_trajectories(sys::System, params::SimulParameters) -> Vector{Trajectory}
+""" run_trajectories(sys::System, params::SimulParameters) -> Vector{Trajectory}
 
 Sample multiple trajectories for a given system and parameters.
 
@@ -15,30 +14,26 @@ function run_trajectories(sys::System, params::SimulParameters; progbar::Bool = 
     ## Precomputing
     t0 = eps(Float64) # To avoid having jumps at 0
     ts = collect(LinRange(t0, params.multiplier*params.tf, params.nsamples))
-    Qs = Vector{Matrix{ComplexF64}}(undef, params.nsamples)
+    Qs = Array{ComplexF64}(undef, sys.NLEVELS, sys.NLEVELS, params.nsamples) # TODO: MAKE THIS AN ARRAY
+
     precompute!(sys, params.nsamples, ts, Qs)
     # To store the data
     data = Vector{Trajectory}(undef, params.ntraj)
-    # Running the trajectory
-    psi = copy(params.psi0)
-    W = Vector{Float64}(undef, params.nsamples)
-    P = Vector{Float64}(undef, sys.NCHANNELS)
-    if progbar
-        @showprogress 1 "Sampling..." for k in 1:params.ntraj
-            data[k] = run_single_trajectory(sys, params,
-                                            W, P, psi, ts, Qs, seed = params.seed + k)
-        end
-        return data
+    # Create copies of the everything arrays, one for each thread
+    W = Array{Float64}(undef, params.nsamples, nthreads())
+    P = Array{Float64}(undef, sys.NCHANNELS, nthreads())
 
-    else
-    for k in 1:params.ntraj
+
+    p = Progress(params.ntraj; dt=1.0, desc="Sampling...", enabled=progbar, showspeed=true)
+    @threads for k in 1:params.ntraj
+            tid  = threadid()
             data[k] = run_single_trajectory(sys, params,
-                                            W,
-                                            P,
-                                            psi,
+                                            W[:, tid],
+                                            P[:, tid],
                                             ts, Qs, seed = params.seed + k)
+           next!(p)
         end
+    finish!(p)
         return data
-
-    end
+    # end
 end

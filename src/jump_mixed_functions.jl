@@ -15,7 +15,7 @@ Sample a single trajectory from the system and parameters using the Gillipsie al
 - `P::Vector{Float64}`: to store the weights over the channels.
 - `psi::Matrix{ComplexF64}`: to store the current state.
 - `ts::Vector{Float64}`: the finegrid of waiting times.
-- `Qs::Vector{Matrix{ComplexF64}}`: to store the precomputed values.
+- `Qs::Array{ComplexF64}`: Array of dimensions sys.NLEVELS, sys.NLEVELS, nsamples.
 
 # Optional Arguments:
 - `seed::Int64`: seed for generating the trajectory
@@ -33,7 +33,7 @@ function run_single_trajectory(
     sys::System,
     params::SimulParameters,
     W::Vector{Float64}, P::Vector{Float64}, psi::Matrix{ComplexF64}, ts::Vector{Float64},
-    Qs::Vector{Matrix{ComplexF64}}; seed::Int64 = 1)
+    Qs::Array{ComplexF64}; seed::Int64 = 1)
     # Random number generator
     Random.seed!(seed)
     traj = Vector{DetectionClick}()
@@ -43,8 +43,8 @@ function run_single_trajectory(
     # Run the trajectory
     while t < params.tf
         # Calculate the probability at infinity
-        for k in 1:params.nsamples
-           W[k] = real(tr(Qs[k]*psi))
+        @inbounds @simd for k in 1:params.nsamples
+           W[k] = real(tr(Qs[:,:,k]*psi))
         end
         if sum(W) < params.eps
             break
@@ -56,7 +56,7 @@ function run_single_trajectory(
         psi .=  expm * psi * adjoint(expm)
         # 3. Sample the channel
         aux_P = real(tr(sys.J * psi))
-        for k in 1:sys.NCHANNELS
+        @inbounds @simd for k in 1:sys.NCHANNELS
             P[k] = real(tr(sys.LLs[k]*psi))^2
         end
         P .= P / aux_P
