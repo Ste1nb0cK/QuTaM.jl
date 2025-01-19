@@ -33,7 +33,7 @@ function run_single_trajectory(
     sys::System,
     params::SimulParameters,
     W::Vector{Float64}, P::Vector{Float64}, psi::Matrix{ComplexF64}, ts::Vector{Float64},
-    Qs::Array{ComplexF64}; seed::Int64 = 1)
+    Qs::Array{ComplexF64}, Vs::Array{ComplexF64}; seed::Int64 = 1)
     # Random number generator
     Random.seed!(seed)
     traj = Vector{DetectionClick}()
@@ -50,10 +50,12 @@ function run_single_trajectory(
             break
         end
         # 2. Sample jump time
-        tau = StatsBase.sample(ts, StatsBase.weights(W))
+        # tau = StatsBase.sample(ts, StatsBase.weights(W))
+        tau_index = StatsBase.sample(1:params.nsamples, StatsBase.weights(W))
         t = tau + t
-        expm = exp(-1im*tau*sys.Heff)
-        psi .=  expm * psi * adjoint(expm)
+        # expm = exp(-1im*tau*sys.Heff)
+        # psi .=  expm * psi * adjoint(expm)
+        psi .=  Vs[:, :, tau_index] * psi * adjoint(Vs[:, :, tau_index])
         # 3. Sample the channel
         aux_P = real(tr(sys.J * psi))
         @inbounds @simd for k in 1:sys.NCHANNELS
