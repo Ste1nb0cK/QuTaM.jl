@@ -16,7 +16,7 @@ function run_trajectories(sys::System, params::SimulParameters; progbar::Bool = 
     ts = collect(LinRange(t0, params.multiplier*params.tf, params.nsamples))
     Qs = Array{ComplexF64}(undef, sys.NLEVELS, sys.NLEVELS, params.nsamples)
     Vs = Array{ComplexF64}(undef, sys.NLEVELS, sys.NLEVELS, params.nsamples)
-    precompute!(sys, params.nsamples, ts, Qs, Vs; progbar=progbar)
+    precompute!(sys, params.nsamples, ts, Qs, Vs)
     # To store the data
     data = Vector{Trajectory}(undef, params.ntraj)
     # Create copies of the everything arrays, one for each thread
