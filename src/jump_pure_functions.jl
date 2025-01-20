@@ -15,7 +15,7 @@ Sample a single trajectory from the system and parameters using the Gillipsie al
 - `P::Vector{Float64}`: to store the weights over the channels
 - `psi::Vector{ComplexF64}`: to store the current state vector
 - `ts::Vector{Float64}`: the finegrid of waiting times
-- `Qs::Vector{Matrix{ComplexF64}}`: to store the precomputed values
+- `Qs::Vector{Matrix{ComplexF64}}`: 3-dimensional array for storing, dimensions must be (sys.NLEVELS, sys.NLEVELS, nsamples)
 
 # Optional Arguments:
 - `seed::Int64`: seed for generating the trajectory
@@ -32,30 +32,33 @@ trajectory always happen after the set final time.
 function run_single_trajectory(
     sys::System,
     params::SimulParameters,
-    W::Vector{Float64}, P::Vector{Float64}, psi::Vector{ComplexF64}, ts::Vector{Float64},
-    Qs::Vector{Matrix{ComplexF64}}; seed::Int64 = 1)
+    W::Vector{Float64}, P::Vector{Float64}, ts::Vector{Float64},
+    Qs::Array{ComplexF64}, Vs::Array{ComplexF64}; seed::Int64 = 1)
     # Random number generator
     Random.seed!(seed)
     traj = Vector{DetectionClick}()
-    psi .= params.psi0
+    psi = copy(params.psi0)
     t::Float64 = 0
     channel = 0
     # Run the trajectory
     while t < params.tf
         # Calculate the probability at infinity
-        for k in 1:params.nsamples
-           W[k] = real(dot(psi, Qs[k]*psi))
+        @inbounds @simd for k in 1:params.nsamples
+           W[k] = real(dot(psi, Qs[:,:, k]*psi))
         end
         if sum(W) < params.eps
             break
         end
         # 2. Sample jump time
-        tau = StatsBase.sample(ts, StatsBase.weights(W))
+        # tau = StatsBase.sample(ts, StatsBase.weights(W))
+        tau_index = StatsBase.sample(1:params.nsamples, StatsBase.weights(W))
+        tau = ts[tau_index]
         t = tau + t
-        psi .= exp(-1im*tau*sys.Heff) * psi
+        # psi .= exp(-1im*tau*sys.Heff) * psi
+        psi .= Vs[:, :, tau_index] * psi
         # 3. Sample the channel
         aux_P = real(dot(psi, sys.J * psi))
-        for k in 1:sys.NCHANNELS
+        @inbounds @simd for k in 1:sys.NCHANNELS
             P[k] = norm(sys.Ls[k]*psi)^2
         end
         P .= P / aux_P
@@ -83,32 +86,28 @@ From a given trajectory, recover the states at each jump.
 # Returns
 `Array{ComplexF64}` with the states
 
-The dimensions of the returned array `s` are `(size(traj), sys.NLEVELS)`,
-so to recover the state vector at the ``n``-th jump one would do `s[n, :]`.
+The dimensions of the returned array `s` are `(sys.NLEVELS, size(traj))`,
+so to recover the state vector at the ``n``-th jump one would do `s[:, n]`.
 """
 function states_at_jumps(traj::Trajectory, sys::System,
                       psi0::Vector{ComplexF64}; normalize::Bool=true)
     njumps = size(traj)[1]
     # states = Vector{Vector{ComplexF64}}(undef, njumps)
-    states = Array{ComplexF64}(undef, njumps, sys.NLEVELS)
+    states = Array{ComplexF64}(undef, sys.NLEVELS,  njumps)
     psi = copy(psi0)
     jump_counter = 1
     if normalize
         for click in traj
             psi .= sys.Ls[click.label] * exp(-1im*(click.time)*sys.Heff) * psi
             psi .= psi/norm(psi)
-            for n in 1:sys.NLEVELS
-                states[jump_counter, n] = psi[n]
-            end
+            states[:, jump_counter] = psi[:]
             jump_counter = jump_counter + 1
         end
         return states
     else
         for click in traj
             psi .= sys.Ls[click.label] * exp(-1im*(click.time)*sys.Heff) * psi
-            for n in 1:sys.NLEVELS
-                states[jump_counter, n] = psi[n]
-            end
+            states[:, jump_counter] = psi[:]
             jump_counter = jump_counter + 1
         end
         return states
@@ -139,20 +138,18 @@ A complex two-dimensional array whose rows contain the states.
 function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
                        psi0::Vector{ComplexF64};
                        normalize::Bool=true)
-    psi = copy(psi0)
-    ntimes = size(t_given)[1]
-
-    jump_states = states_at_jumps(traj, sys, psi0; normalize=normalize)
-    njumps = size(jump_states)[1]
-    t_ = 0
-    counter = 1
-    counter_c = 1
     # Special case: if the time array is empty, return an empty array
     if isempty(t_given)
         return Array{ComplexF64}(undef, 0, 0) # empty 2 dimensional array
     end
-
-    states = Array{ComplexF64}(undef, ntimes, sys.NLEVELS)
+    psi = copy(psi0)
+    ntimes = size(t_given)[1]
+    jump_states = states_at_jumps(traj, sys, psi0; normalize=normalize)
+    njumps = size(traj)[1]
+    t_ = 0
+    counter = 1
+    counter_c = 1
+    states = Array{ComplexF64}(undef, sys.NLEVELS, ntimes)
 
     # Edge case: if the trajectory is empty, evaluate exponentials and return
     if isempty(traj)
@@ -161,9 +158,7 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
             if normalize
                 psi .= psi/norm(psi)
             end
-            for k in 1:sys.NLEVELS
-                states[counter, k] = psi[k]
-            end
+            states[:, counter] = psi[:]
             counter = counter + 1
             if counter > ntimes
                 break
@@ -177,9 +172,7 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
             if normalize
                 psi .= psi/norm(psi)
             end
-            for k in 1:sys.NLEVELS
-                states[counter, k] = psi[k]
-            end
+            states[:, counter] = psi[:]
             counter = counter + 1
             if counter > ntimes
                 break
@@ -190,13 +183,11 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
     while (counter_c <= njumps) && (counter <= ntimes)
         timeclick = traj[counter_c].time
         while (t_ < t_given[counter] < t_ + timeclick) && (counter <= ntimes)
-             psi .= exp(-1im*(t_given[counter] - t_)*sys.Heff) * jump_states[counter_c-1, :]
+             psi .= exp(-1im*(t_given[counter] - t_)*sys.Heff) * jump_states[:, counter_c-1]
              if normalize
              psi .= psi/norm(psi)
              end
-             for k in 1:sys.NLEVELS
-                 states[counter, k] = psi[k]
-             end
+             states[:, counter] .= psi[:]
              counter = counter + 1
              if counter > ntimes
                  break
@@ -207,13 +198,11 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
     end
 
     while counter <= ntimes
-        psi .= exp(-1im*(t_given[counter] - t_)*sys.Heff) * jump_states[njumps, :]
+        psi .= exp(-1im*(t_given[counter] - t_)*sys.Heff) * jump_states[:, njumps]
         if normalize
             psi .= psi/norm(psi)
         end
-        for k in 1:sys.NLEVELS
-            states[counter, k] = psi[k]
-        end
+        states[ :, counter] = psi[:]
         counter = counter + 1
     end
     return states

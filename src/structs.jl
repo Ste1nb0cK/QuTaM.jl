@@ -6,7 +6,7 @@
     Ls::Vector{Matrix{ComplexF64}}, J::Matrix{ComplexF64},
     Heff::Matrix{ComplexF64})
 
-A `mutable struct` that characterizes the dynamics via specification of
+A `struct` that characterizes the dynamics via specification of
  the jump and hamiltonian operators.
 
 # Fields
@@ -22,7 +22,7 @@ To create an instance it's enough to provide the hamiltonian and the jump operat
 `System(H::Matrix{ComplexF64}, Ls::Vector{Matrix{ComplexF64}})`
 
 """
-mutable struct System
+struct System
     NLEVELS::Int64 # Number of levels of the system
     NCHANNELS::Int64 # Number of jump channels
     H::Matrix{ComplexF64} # Hamiltonian
@@ -82,7 +82,7 @@ const Trajectory = Vector{DetectionClick}
                 dt::Float64, eps::Float64)
 
 
-A `mutable struct` containing all the necessary information for running the
+A `struct` containing all the necessary information for running the
 the simulation.
 
 # Fields
@@ -106,7 +106,7 @@ For the Gillipsie algorithm to work it's key to have a grid that's capable of
 resolving the statistical details of the WTD, this grid is taken in the interval
 `(0, tf*multiplier)`.
 """
-mutable struct SimulParameters
+struct SimulParameters
     psi0::Array{ComplexF64}
     nsamples::Int64 # Number of samples in the finegrid
     seed::Int64 # seed
@@ -127,3 +127,5 @@ mutable struct SimulParameters
 end
 Base.show(io::IO, s::SimulParameters) = print(io,
 "SimulParameters(psi0=$(s.psi0)\nnsamples=$(s.nsamples)\nseed=$(s.seed)\nntraj=$(s.ntraj))\nmultiplier=$(s.multiplier)\ntf=$(s.tf)\ndt=$(s.dt)\neps=$(s.eps))")
+
+
