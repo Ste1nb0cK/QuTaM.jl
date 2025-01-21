@@ -11,6 +11,7 @@ include("jump_pure_functions.jl")
 include("jump_mixed_functions.jl")
 include("run_trajectories.jl")
 include("sample_single_trajectory.jl")
+include("monitoring.jl")
 # Utilities
 include("../util/pauli_m.jl")
 include("../util/rd_ex.jl")
@@ -24,5 +25,5 @@ export
     sample_single_trajectory,
     evaluate_at_t,
     states_at_jumps,
-    MonitoringInBetween
+    MonitoringOperator
 end

@@ -52,7 +52,7 @@ function run_single_trajectory(
         # 2. Sample jump time
         # tau = StatsBase.sample(ts, StatsBase.weights(W))
         tau_index = StatsBase.sample(1:params.nsamples, StatsBase.weights(W))
-        t = tau + t
+        t = ts[tau_index] + t
         # expm = exp(-1im*tau*sys.Heff)
         # psi .=  expm * psi * adjoint(expm)
         psi .=  Vs[:, :, tau_index] * psi * adjoint(Vs[:, :, tau_index])
@@ -65,7 +65,7 @@ function run_single_trajectory(
         channel::Int64 = StatsBase.sample(1:sys.NCHANNELS, StatsBase.weights(P))
         psi .= sys.Ls[channel] * psi * adjoint(sys.Ls[channel]) # State without normalization
         psi .= psi / tr(psi)
-        push!(traj, DetectionClick(tau, channel))
+        push!(traj, DetectionClick(ts[tau_index], channel))
     end
     return traj
 end
