@@ -1,6 +1,7 @@
 function GetHeffParametrized(H_par::Function, Ls_par)::Function
-    return theta -> begin # Get an arbitrary number of arguments
-        # The ... passes the arguments as a tuple
+    # here theta is expected to be a vector
+    return (theta...) -> begin # Get an arbitrary number of arguments
+        # The ... "splatts" the vector so it is passed as a tuple to the function
         LLs_par = [ adjoint(L_par(theta...))*L_par(theta...) for L_par in Ls_par]
         return H_par(theta...) - 0.5im*sum(LLs_par)
     end
