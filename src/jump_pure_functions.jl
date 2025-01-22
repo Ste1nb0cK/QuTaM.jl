@@ -38,13 +38,14 @@ function run_single_trajectory(
     Random.seed!(seed)
     traj = Vector{DetectionClick}()
     psi = copy(params.psi0)
+    # temp_psi = similar(psi)
     t::Float64 = 0
     channel = 0
     # Run the trajectory
     while t < params.tf
         # Calculate the probability at infinity
         @inbounds @simd for k in 1:params.nsamples
-           W[k] = real(dot(psi, Qs[:,:, k]*psi))
+           W[k] = real(dot(psi, Qs[:, :, k], psi)) # dot product without storing A*x. THIS IS THE KEY FOR SPEED
         end
         if sum(W) < params.eps
             break
@@ -52,8 +53,7 @@ function run_single_trajectory(
         # 2. Sample jump time
         # tau = StatsBase.sample(ts, StatsBase.weights(W))
         tau_index = StatsBase.sample(1:params.nsamples, StatsBase.weights(W))
-        tau = ts[tau_index]
-        t = tau + t
+        t = ts[tau_index] + t
         # psi .= exp(-1im*tau*sys.Heff) * psi
         psi .= Vs[:, :, tau_index] * psi
         # 3. Sample the channel
@@ -65,7 +65,7 @@ function run_single_trajectory(
         channel::Int64 = StatsBase.sample(1:sys.NCHANNELS, StatsBase.weights(P))
         psi .= sys.Ls[channel]*psi # State without normalization
         psi .= psi / norm(psi)
-        push!(traj, DetectionClick(tau, channel))
+        push!(traj, DetectionClick( ts[tau_index], channel))
     end
     return traj
 end
