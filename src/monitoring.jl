@@ -1,7 +1,8 @@
 function GetHeffParametrized(H_par::Function, Ls_par)::Function
-    return (input...) -> begin
-        LLs_par = [ adjoint(L_par(input...))*L_par(input...) for L_par in Ls_par]
-        return H_par(input...) - 0.5im*sum(LLs_par)
+    return theta -> begin # Get an arbitrary number of arguments
+        # The ... passes the arguments as a tuple
+        LLs_par = [ adjoint(L_par(theta...))*L_par(theta...) for L_par in Ls_par]
+        return H_par(theta...) - 0.5im*sum(LLs_par)
     end
 end
 
