@@ -8,9 +8,7 @@ import Random, StatsBase
 include("structs.jl")
 include("precompute.jl")
 include("jump_pure_functions.jl")
-include("jump_mixed_functions.jl")
 include("run_trajectories.jl")
-include("sample_single_trajectory.jl")
 include("monitoring.jl")
 # Utilities
 include("../util/pauli_m.jl")

@@ -41,7 +41,7 @@ function postjumpupdate!(L::Matrix{ComplexF64}, psi::Vector{ComplexF64}; normali
         end
 end
 
-function postjumpupdate!(L::Matrix{ComplexF64}, psi::Matrix{ComplexF64}, normalize=tru)
+function postjumpupdate!(L::Matrix{ComplexF64}, psi::Matrix{ComplexF64}; normalize=true)
         psi .= L*psi*adjoint(L) # State without normalization
         if normalize
             psi .= psi / tr(psi)
@@ -80,7 +80,7 @@ The trajectory ends when a jump that happens after `params.tf` is obtained,
 yet that jump is stored in the trajectory. In other words, the last jump of the
 trajectory always happen after the set final time.
 """
-function runsingletrajectory(sys::System, params::SimulParameters,
+function run_singletrajectory(sys::System, params::SimulParameters,
     W::Vector{Float64}, P::Vector{Float64}, ts::Vector{Float64},
     Qs::Array{ComplexF64}, Vs::Array{ComplexF64}; seed::Int64 = 1, isrenewal=false)
     Random.seed!(seed)
@@ -113,18 +113,18 @@ function runsingletrajectory(sys::System, params::SimulParameters,
     return traj
 end
 
-function writejumpstate!(states::Array{ComplexF64}, psi::Vector{ComplexF64}, jump_counter)
+function writejumpstate!(states::Array{ComplexF64}, psi::Vector{ComplexF64}, jump_counter::Int64)
             states[:, jump_counter] .= psi
 end
 
-function writejumpstate!(states::Array{ComplexF64}, psi::Matrix{ComplexF64}, jump_counter)
+function writejumpstate!(states::Array{ComplexF64}, psi::Matrix{ComplexF64}, jump_counter::Int64)
             states[:, :, jump_counter] .= psi
 end
 
 
 ############ Evaluation at given times #######################
 """
-    states_at_jumps(traj::Trajectory, sys::System,
+    statesat_jumps(traj::Trajectory, sys::System,
                       psi0::Vector{ComplexF64}) - > Array{ComplexF64}
 From a given trajectory, recover the states at each jump.
 
@@ -141,7 +141,7 @@ From a given trajectory, recover the states at each jump.
 The dimensions of the returned array `s` are `(sys.NLEVELS, size(traj))`,
 so to recover the state vector at the ``n``-th jump one would do `s[:, n]`.
 """
-function statesatjumps(traj::Trajectory, sys::System,
+function states_atjumps(traj::Trajectory, sys::System,
                       psi0::Union{Vector{ComplexF64}, Matrix{ComplexF64}}; normalize::Bool=true)
     njumps = size(traj)[1]
     if isa(psi0, Vector{ComplexF64})
@@ -153,8 +153,8 @@ function statesatjumps(traj::Trajectory, sys::System,
     jump_counter = 1
     for click in traj
         prejumpupdate!(exp(-1im*(click.time)*sys.Heff), psi)
-        postjumpupdate!(sys.Ls[click.channel], psi; normalize=normalize)
-        writejumpstate!(states, psi)
+        postjumpupdate!(sys.Ls[click.label], psi; normalize=normalize)
+        writejumpstate!(states, psi, jump_counter)
         jump_counter = jump_counter + 1
     end
     return states

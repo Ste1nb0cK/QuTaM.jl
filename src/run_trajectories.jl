@@ -27,7 +27,7 @@ function run_trajectories(sys::System, params::SimulParameters; progbar::Bool = 
     p = Progress(params.ntraj; dt=1.0, desc="Sampling...", enabled=progbar, showspeed=true)
    @threads for k in 1:params.ntraj
             tid  = threadid()
-            data[k] = run_single_trajectory(sys, params, W[:, tid], P[:, tid],
+            data[k] = run_singletrajectory(sys, params, W[:, tid], P[:, tid],
                         ts, Qs, Vs; seed = params.seed + k, isrenewal=isrenewal)
             next!(p)
             end
