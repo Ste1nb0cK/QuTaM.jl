@@ -12,7 +12,7 @@ t_given = collect(LinRange(0, params.tf, 1000));
 # Generate a set of trajectories and states
 println("Sampling clicks\n")
 @time begin
-    sample_clicks = QuTaM.run_trajectories(sys, params)
+    sample_clicks = QuTaM.run_trajectories(sys, params; isrenewal=true)
 end
 ntimes = size(t_given)[1]
 sample = zeros(ComplexF64,  sys.NLEVELS, ntimes, params.ntraj) # states

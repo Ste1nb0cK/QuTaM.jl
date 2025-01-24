@@ -22,8 +22,8 @@ using QuTaM, LinearAlgebra, Test
         end
     end
     counter = 1
-    traj = QuTaM.sample_single_trajectory(sys, params, params.seed)
-    states = QuTaM.states_at_jumps(traj, sys, params.psi0)
+    traj = QuTaM.run_trajectories(sys, params)[1]
+    states = QuTaM.statesatjumps(traj, sys, params.psi0)
     for click in traj
         @test identify_state(states[:, counter]) == click.label
         counter = counter + 1
@@ -66,7 +66,7 @@ end
 
     for seed in 1:3
        traj = QuTaM.sample_single_trajectory(sys, params, seed);
-       states = QuTaM.states_at_jumps(traj, sys, params.psi0)
+       states = QuTaM.statesatjumps(traj, sys, params.psi0)
        @test size(traj)[1] == size(states)[3]
    end
     ################### Check the correct states are obtained
@@ -83,7 +83,7 @@ end
     end
     counter = 1
     traj = QuTaM.sample_single_trajectory(sys, params, params.seed)
-    states = QuTaM.states_at_jumps(traj, sys, params.psi0)
+    states = QuTaM.statesatjumps(traj, sys, params.psi0)
     for click in traj
         @test identify_state(states[:, :, counter ]) == click.label
         counter = counter + 1

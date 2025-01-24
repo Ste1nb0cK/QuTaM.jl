@@ -1,3 +1,54 @@
+function calculatewtdweights!(W::Array{Float64}, Qs::Array{ComplexF64}, psi::Vector{ComplexF64}, params::SimulParameters)
+    @inbounds @simd for k in 1:params.nsamples
+           W[k] = real(dot(psi, Qs[:, :, k], psi)) # dot product without storing A*x. THIS IS THE KEY FOR SPEED
+        end
+end
+
+function calculatewtdweights!(W::Array{Float64}, Qs::Array{ComplexF64}, psi::Matrix{ComplexF64}, params::SimulParameters)
+    @inbounds @simd for k in 1:params.nsamples
+           W[k] = real(tr(Qs[:, :, k] * psi))
+        end
+end
+
+function calculatechannelweights!(P::Vector{Float64}, psi::Vector{ComplexF64}, sys::System)
+    aux_P = real(dot(psi, sys.J * psi))
+    @inbounds @simd for k in 1:sys.NCHANNELS
+        P[k] = norm(sys.Ls[k]*psi)^2
+    end
+    P .= P / aux_P
+end
+
+function calculatechannelweights!(P::Vector{Float64}, psi::Matrix{ComplexF64}, sys::System)
+    aux_P = real(dot(psi, sys.J * psi))
+    @inbounds @simd for k in 1:sys.NCHANNELS
+        P[k] = real(tr(sys.LLs[k]*psi))
+    end
+    P .= P / aux_P
+end
+
+function prejumpupdate!(V::Matrix{ComplexF64}, psi::Vector{ComplexF64})
+    psi .= V * psi
+end
+
+function prejumpupdate!(V::Matrix{ComplexF64}, psi::Matrix{ComplexF64})
+    psi .= V * psi * adjoint(V)
+end
+
+function postjumpupdate!(L::Matrix{ComplexF64}, psi::Vector{ComplexF64}; normalize=true)
+        psi .= L*psi # State without normalization
+        if normalize
+            psi .= psi / norm(psi)
+        end
+end
+
+function postjumpupdate!(L::Matrix{ComplexF64}, psi::Matrix{ComplexF64}, normalize=tru)
+        psi .= L*psi*adjoint(L) # State without normalization
+        if normalize
+            psi .= psi / tr(psi)
+        end
+end
+
+
 ############# Single Trajectory Routine ######################
 """
     run_single_trajectories(sys::System, params::SimulParameters,
@@ -29,46 +80,47 @@ The trajectory ends when a jump that happens after `params.tf` is obtained,
 yet that jump is stored in the trajectory. In other words, the last jump of the
 trajectory always happen after the set final time.
 """
-function run_single_trajectory(
-    sys::System,
-    params::SimulParameters,
+function runsingletrajectory(sys::System, params::SimulParameters,
     W::Vector{Float64}, P::Vector{Float64}, ts::Vector{Float64},
-    Qs::Array{ComplexF64}, Vs::Array{ComplexF64}; seed::Int64 = 1)
-    # Random number generator
+    Qs::Array{ComplexF64}, Vs::Array{ComplexF64}; seed::Int64 = 1, isrenewal=false)
     Random.seed!(seed)
+    channel = 0
     traj = Vector{DetectionClick}()
     psi = copy(params.psi0)
-    # temp_psi = similar(psi)
     t::Float64 = 0
     channel = 0
     # Run the trajectory
+    calculatewtdweights!(W, Qs, psi, params)
     while t < params.tf
-        # Calculate the probability at infinity
-        @inbounds @simd for k in 1:params.nsamples
-           W[k] = real(dot(psi, Qs[:, :, k], psi)) # dot product without storing A*x. THIS IS THE KEY FOR SPEED
-        end
-        if sum(W) < params.eps
-            break
-        end
-        # 2. Sample jump time
-        # tau = StatsBase.sample(ts, StatsBase.weights(W))
+        #Sample jump time and  move state to pre-jump state
         tau_index = StatsBase.sample(1:params.nsamples, StatsBase.weights(W))
         t = ts[tau_index] + t
-        # psi .= exp(-1im*tau*sys.Heff) * psi
-        psi .= Vs[:, :, tau_index] * psi
-        # 3. Sample the channel
-        aux_P = real(dot(psi, sys.J * psi))
-        @inbounds @simd for k in 1:sys.NCHANNELS
-            P[k] = norm(sys.Ls[k]*psi)^2
+        prejumpupdate!(Vs[:, :, tau_index], psi)
+        # Sample jump channel
+        calculatechannelweights!(P, psi, sys)
+        channel = StatsBase.sample(1:sys.NCHANNELS, StatsBase.weights(P))
+        # State update
+        postjumpupdate!(sys.Ls[channel], psi)
+        push!(traj, DetectionClick(ts[tau_index], channel))
+        # Sample WTD
+        if !isrenewal
+            calculatewtdweights!(W, Qs, psi, params)
+            if sum(W) < params.eps
+                break
+            end
         end
-        P .= P / aux_P
-        channel::Int64 = StatsBase.sample(1:sys.NCHANNELS, StatsBase.weights(P))
-        psi .= sys.Ls[channel]*psi # State without normalization
-        psi .= psi / norm(psi)
-        push!(traj, DetectionClick( ts[tau_index], channel))
     end
     return traj
 end
+
+function writejumpstate!(states::Array{ComplexF64}, psi::Vector{ComplexF64}, jump_counter)
+            states[:, jump_counter] .= psi
+end
+
+function writejumpstate!(states::Array{ComplexF64}, psi::Matrix{ComplexF64}, jump_counter)
+            states[:, :, jump_counter] .= psi
+end
+
 
 ############ Evaluation at given times #######################
 """
@@ -89,30 +141,23 @@ From a given trajectory, recover the states at each jump.
 The dimensions of the returned array `s` are `(sys.NLEVELS, size(traj))`,
 so to recover the state vector at the ``n``-th jump one would do `s[:, n]`.
 """
-function states_at_jumps(traj::Trajectory, sys::System,
-                      psi0::Vector{ComplexF64}; normalize::Bool=true)
+function statesatjumps(traj::Trajectory, sys::System,
+                      psi0::Union{Vector{ComplexF64}, Matrix{ComplexF64}}; normalize::Bool=true)
     njumps = size(traj)[1]
-    # states = Vector{Vector{ComplexF64}}(undef, njumps)
-    states = Array{ComplexF64}(undef, sys.NLEVELS,  njumps)
+    if isa(psi0, Vector{ComplexF64})
+        states = Array{ComplexF64}(undef, sys.NLEVELS,  njumps)
+    elseif isa(psi0, Matrix{ComplexF64})
+        states = Array{ComplexF64}(undef, sys.NLEVELS, sys.NLEVELS, njumps)
+    end
     psi = copy(psi0)
     jump_counter = 1
-    if normalize
-        for click in traj
-            psi .= sys.Ls[click.label] * exp(-1im*(click.time)*sys.Heff) * psi
-            psi .= psi/norm(psi)
-            states[:, jump_counter] = psi[:]
-            jump_counter = jump_counter + 1
-        end
-        return states
-    else
-        for click in traj
-            psi .= sys.Ls[click.label] * exp(-1im*(click.time)*sys.Heff) * psi
-            states[:, jump_counter] = psi[:]
-            jump_counter = jump_counter + 1
-        end
-        return states
-
+    for click in traj
+        prejumpupdate!(exp(-1im*(click.time)*sys.Heff), psi)
+        postjumpupdate!(sys.Ls[click.channel], psi; normalize=normalize)
+        writejumpstate!(states, psi)
+        jump_counter = jump_counter + 1
     end
+    return states
 end
 
 """
