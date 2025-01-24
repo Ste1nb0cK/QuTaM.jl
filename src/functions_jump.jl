@@ -1,3 +1,10 @@
+# Function that returns a view of the given array, with the last index fixed at k
+function fixlastindex(array::Array{ComplexF64}, k::Int64)
+    indices = ntuple(d -> d == ndims(array) ? k : Colon(), ndims(array))
+    # Add a singleton of dimension 1
+    return view(array, indices...)
+end
+
 function calculatewtdweights!(W::Array{Float64}, Qs::Array{ComplexF64}, psi::Vector{ComplexF64}, params::SimulParameters)
     @inbounds @simd for k in 1:params.nsamples
            W[k] = real(dot(psi, Qs[:, :, k], psi)) # dot product without storing A*x. THIS IS THE KEY FOR SPEED
@@ -26,12 +33,37 @@ function calculatechannelweights!(P::Vector{Float64}, psi::Matrix{ComplexF64}, s
     P .= P / aux_P
 end
 
-function prejumpupdate!(V::Matrix{ComplexF64}, psi::Vector{ComplexF64})
+# Pure state versions
+function prejumpupdate!(V::Matrix{ComplexF64}, psi::Vector{ComplexF64}; normalize=false)
     psi .= V * psi
+    if normalize
+        psi .= psi/ norm(psi)
+    end
 end
 
-function prejumpupdate!(V::Matrix{ComplexF64}, psi::Matrix{ComplexF64})
+function prejumpupdate!(psi::Vector{ComplexF64}, V::Matrix{ComplexF64},
+                        psi0::Union{Vector{ComplexF64}, SubArray{ComplexF64}}; normalize=false)
+    psi .= V * psi0
+    if normalize
+        psi .= psi/ norm(psi)
+    end
+end
+
+# Mixed state versions
+
+function prejumpupdate!(psi::Matrix{ComplexF64}, V::Matrix{ComplexF64},
+                        psi0::Union{Matrix{ComplexF64}, SubArray{ComplexF64}}; normalize=false)
+    psi .= V * psi0 * adjoint(V)
+    if normalize
+        psi .= psi/ tr(psi)
+    end
+end
+
+function prejumpupdate!(V::Matrix{ComplexF64}, psi::Matrix{ComplexF64}; normalize=false)
     psi .= V * psi * adjoint(V)
+    if normalize
+        psi .= psi/ tr(psi)
+    end
 end
 
 function postjumpupdate!(L::Matrix{ComplexF64}, psi::Vector{ComplexF64}; normalize=true)
@@ -113,13 +145,20 @@ function run_singletrajectory(sys::System, params::SimulParameters,
     return traj
 end
 
-function writejumpstate!(states::Array{ComplexF64}, psi::Vector{ComplexF64}, jump_counter::Int64)
-            states[:, jump_counter] .= psi
+function writestate!(states::Array{ComplexF64},
+                     psi::Union{Vector{ComplexF64}, Matrix{ComplexF64}}, counter::Int64)
+             fixlastindex(states, counter) .= psi
 end
 
-function writejumpstate!(states::Array{ComplexF64}, psi::Matrix{ComplexF64}, jump_counter::Int64)
-            states[:, :, jump_counter] .= psi
-end
+
+
+# function writestate!(states::Array{ComplexF64}, psi::Vector{ComplexF64}, counter::Int64)
+            # states[:, counter] .= psi
+# end
+
+# function writestate!(states::Array{ComplexF64}, psi::Matrix{ComplexF64}, counter::Int64)
+            # states[:, :, counter] .= psi
+# end
 
 
 ############ Evaluation at given times #######################
@@ -154,7 +193,7 @@ function states_atjumps(traj::Trajectory, sys::System,
     for click in traj
         prejumpupdate!(exp(-1im*(click.time)*sys.Heff), psi)
         postjumpupdate!(sys.Ls[click.label], psi; normalize=normalize)
-        writejumpstate!(states, psi, jump_counter)
+        writestate!(states, psi, jump_counter)
         jump_counter = jump_counter + 1
     end
     return states
@@ -180,8 +219,8 @@ The returned states are stored in a `Array{ComplexF64}` with dimensions
 A complex two-dimensional array whose rows contain the states.
 """
 
-function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
-                       psi0::Vector{ComplexF64};
+function states_att(t_given::Vector{Float64}, traj::Trajectory, sys::System,
+                       psi0::Union{Vector{ComplexF64}, Matrix{ComplexF64}};
                        normalize::Bool=true)
     # Special case: if the time array is empty, return an empty array
     if isempty(t_given)
@@ -189,21 +228,24 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
     end
     psi = copy(psi0)
     ntimes = size(t_given)[1]
-    jump_states = states_at_jumps(traj, sys, psi0; normalize=normalize)
+    jump_states = states_atjumps(traj, sys, psi0; normalize=normalize)
     njumps = size(traj)[1]
     t_ = 0
     counter = 1
     counter_c = 1
-    states = Array{ComplexF64}(undef, sys.NLEVELS, ntimes)
-
+    # states = Array{ComplexF64}(undef, sys.NLEVELS, ntimes)
+    if isa(psi0, Vector{ComplexF64})
+        states = Array{ComplexF64}(undef, sys.NLEVELS,  ntimes)
+    elseif isa(psi0, Matrix{ComplexF64})
+        states = Array{ComplexF64}(undef, sys.NLEVELS, sys.NLEVELS, ntimes)
+    end
     # Edge case: if the trajectory is empty, evaluate exponentials and return
     if isempty(traj)
         while counter <= ntimes
-            psi .= exp(-1im*(t_given[counter])*sys.Heff) * psi0
-            if normalize
-                psi .= psi/norm(psi)
-            end
-            states[:, counter] = psi[:]
+            prejumpupdate!(psi, exp(-1im*(t_given[counter])*sys.Heff), psi0;
+                           normalize=normalize)
+            # fixlastindex(states, counter)
+            writestate!(states, psi, counter)
             counter = counter + 1
             if counter > ntimes
                 break
@@ -213,11 +255,9 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
     end
     # All the states before the first jump can be handled like this:
     while (t_given[counter] < traj[counter_c].time) && (counter <= ntimes)
-            psi .= exp(-1im*(t_given[counter])*sys.Heff) * psi0
-            if normalize
-                psi .= psi/norm(psi)
-            end
-            states[:, counter] = psi[:]
+            prejumpupdate!(psi, exp(-1im*(t_given[counter])*sys.Heff), psi0;
+                           normalize=normalize)
+            writestate!(states, psi, counter)
             counter = counter + 1
             if counter > ntimes
                 break
@@ -228,11 +268,9 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
     while (counter_c <= njumps) && (counter <= ntimes)
         timeclick = traj[counter_c].time
         while (t_ < t_given[counter] < t_ + timeclick) && (counter <= ntimes)
-             psi .= exp(-1im*(t_given[counter] - t_)*sys.Heff) * jump_states[:, counter_c-1]
-             if normalize
-             psi .= psi/norm(psi)
-             end
-             states[:, counter] .= psi[:]
+             prejumpupdate!(psi, exp(-1im*(t_given[counter] - t_)*sys.Heff),
+                            fixlastindex(jump_states, counter_c-1); normalize=normalize)
+             writestate!(states, psi, counter)
              counter = counter + 1
              if counter > ntimes
                  break
@@ -243,11 +281,9 @@ function evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
     end
 
     while counter <= ntimes
-        psi .= exp(-1im*(t_given[counter] - t_)*sys.Heff) * jump_states[:, njumps]
-        if normalize
-            psi .= psi/norm(psi)
-        end
-        states[ :, counter] = psi[:]
+        prejumpupdate!(psi, exp(-1im*(t_given[counter] - t_)*sys.Heff),
+                       fixlastindex(jump_states, njumps); normalize=normalize)
+        writestate!(states, psi, counter)
         counter = counter + 1
     end
     return states
