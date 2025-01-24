@@ -1,4 +1,4 @@
-using QuTaM, LinearAlgebra, Test
+using BackAction, LinearAlgebra, Test
 function identifystate(s::Vector{ComplexF64})
     s1 = [1.0+0im, 0]
     s2 = [0, 1.0+0im]
@@ -24,26 +24,26 @@ function identifystate(s::Matrix{ComplexF64})
 end
 
 
-sys = QuTaM.rdt_sys
+sys = BackAction.rdt_sys
 @testset "Pure States" begin
-    params = QuTaM.rdt_params
+    params = BackAction.rdt_params
     # Edge case: empty t_given
     tgiven_empty = Vector{Float64}(undef, 0)
     traj_tgivenempty = [DetectionClick(0.5, 1)]
-    states_empty = QuTaM.states_att(tgiven_empty, traj_tgivenempty, sys, params.psi0)
+    states_empty = BackAction.states_att(tgiven_empty, traj_tgivenempty, sys, params.psi0)
     # Check that empty time vector returns empty vector
     @test isempty(states_empty)
 
     # Edge case: No-jump trajectory"
-    traj_empty= Vector{QuTaM.DetectionClick}(undef, 0) # Empty trajectory
+    traj_empty= Vector{BackAction.DetectionClick}(undef, 0) # Empty trajectory
     tgiven_emptytraj = collect(LinRange(0, params.tf, 100))
-    states_nojumps = QuTaM.states_att(tgiven_emptytraj, traj_empty, sys, params.psi0)
+    states_nojumps = BackAction.states_att(tgiven_emptytraj, traj_empty, sys, params.psi0)
     for k in 1:size(states_nojumps)[2]
-        @test identify_state(states_nojumps[:, k]) == identify_state(params.psi0)
+        @test identifystate(states_nojumps[:, k]) == identifystate(params.psi0)
     end
 
     # Generic case
-    trajectories = QuTaM.run_trajectories(sys, params)
+    trajectories = BackAction.run_trajectories(sys, params)
     # for traj in trajectories
     for traj in trajectories
         jumpdts = [click.time for click in traj]
@@ -54,7 +54,7 @@ sys = QuTaM.rdt_sys
         tgiven_a = jumptimes .+ mindt/2
         # Verify that evaluation just after jump works,
         # and that there are as many states as jumps
-        states_afterjumps = QuTaM.states_att(tgiven_a, traj, sys, params.psi0)
+        states_afterjumps = BackAction.states_att(tgiven_a, traj, sys, params.psi0)
         njumps = size(traj)[1]
         nstates = size(states_afterjumps)[2]
         @test nstates == njumps
@@ -65,7 +65,7 @@ sys = QuTaM.rdt_sys
         # Verify that evaluation just before jump works,
         # and that there are as many states as jumps
         tgiven_b = jumptimes .- mindt/2
-        states_beforejumps = QuTaM.states_att(tgiven_b, traj, sys, params.psi0)
+        states_beforejumps = BackAction.states_att(tgiven_b, traj, sys, params.psi0)
         njumps = size(traj)[1]
         nstates = size(states_beforejumps)[2]
         @test nstates == njumps
@@ -94,11 +94,11 @@ sys = QuTaM.rdt_sys
     # Edge case: empty t_given
     tgiven_empty = Vector{Float64}(undef, 0)
     traj_tgivenempty = [DetectionClick(0.5, 1)]
-    states_empty = QuTaM.states_att(tgiven_empty, traj_tgivenempty, sys, params.psi0)
+    states_empty = BackAction.states_att(tgiven_empty, traj_tgivenempty, sys, params.psi0)
     # Check that empty time vector returns empty vector
     @test isempty(states_empty)
     # Generic case
-    trajectories = QuTaM.run_trajectories(sys, params)
+    trajectories = BackAction.run_trajectories(sys, params)
     for traj in trajectories
         jumpdts = [click.time for click in traj]
         mindt = extrema(jumpdts)[1]
@@ -108,7 +108,7 @@ sys = QuTaM.rdt_sys
         tgiven_a = jumptimes .+ mindt/2
         # Verify that evaluation just after jump works,
         # and that there are as many states as jumps
-        states_afterjumps = QuTaM.states_att(tgiven_a, traj, sys, params.psi0)
+        states_afterjumps = BackAction.states_att(tgiven_a, traj, sys, params.psi0)
         njumps = size(traj)[1]
         nstates = size(states_afterjumps)[3]
         @test nstates == njumps
@@ -119,7 +119,7 @@ sys = QuTaM.rdt_sys
         # Verify that evaluation just before jump works,
         # and that there are as many states as jumps
         tgiven_b = jumptimes .- mindt/2
-        states_beforejumps = QuTaM.states_att(tgiven_b, traj, sys, params.psi0)
+        states_beforejumps = BackAction.states_att(tgiven_b, traj, sys, params.psi0)
         njumps = size(traj)[1]
         nstates = size(states_beforejumps)[3]
         @test nstates == njumps
