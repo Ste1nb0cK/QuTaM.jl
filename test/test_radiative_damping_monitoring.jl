@@ -1,6 +1,6 @@
-using QuTaM, Plots, Test, LinearAlgebra, Statistics
-sys = QuTaM.rd_sys
-params = SimulParameters(QuTaM.rd_psi0,
+using BackAction, Plots, Test, LinearAlgebra, Statistics
+sys = BackAction.rd_sys
+params = SimulParameters(BackAction.rd_psi0,
     3.0, # Final time. Set very long so that all trajectories jump
     1, # seed
     1000, # Number of trajectories
@@ -11,8 +11,8 @@ params = SimulParameters(QuTaM.rd_psi0,
 
 trajectories = run_trajectories(sys, params);
 # Parametrization stuff
-H_parametrized = (delta::Float64, gamma::Float64) -> (0.5*delta*QuTaM.sigma_z)::Matrix{ComplexF64}
-L_parametrized = (delta::Float64, gamma::Float64) -> (sqrt(gamma)*QuTaM.sigma_m)::Matrix{ComplexF64}
+H_parametrized = (delta::Float64, gamma::Float64) -> (0.5*delta*BackAction.sigma_z)::Matrix{ComplexF64}
+L_parametrized = (delta::Float64, gamma::Float64) -> (sqrt(gamma)*BackAction.sigma_m)::Matrix{ComplexF64}
 Heff_parametrized = GetHeffParametrized(H_parametrized, [L_parametrized])
 
 ntimes = 100
@@ -22,7 +22,7 @@ t_given = collect(LinRange(0, params.tf, ntimes));
 xi_sample = Array{ComplexF64}(undef, sys.NLEVELS, sys.NLEVELS, ntimes, params.ntraj)
 for n in 1:params.ntraj
     xi_sample[:, :, :, n] = MonitoringOperator(t_given, sys, Heff_parametrized, [L_parametrized], trajectories[n], params.psi0,
-                           [QuTaM.rd_deltaomega, QuTaM.rd_gamma], [0.0, QuTaM.rd_gamma/100])
+                           [BackAction.rd_deltaomega, BackAction.rd_gamma], [0.0, BackAction.rd_gamma/100])
 end
 
 # Calculate the sample Fisher Information
@@ -36,7 +36,7 @@ end
 fi = dropdims(mean(fi_sample, dims=2), dims=2);
 
 # Check global error against analytical result
-f_analytical(t) = (1-exp(-QuTaM.rd_gamma*t))/(QuTaM.rd_gamma^2)
+f_analytical(t) = (1-exp(-BackAction.rd_gamma*t))/(BackAction.rd_gamma^2)
 fi_theo = f_analytical.(t_given)
 
 fi_min, fi_max = extrema(fi_theo)
