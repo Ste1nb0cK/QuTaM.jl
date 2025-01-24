@@ -23,8 +23,9 @@ export
     # Structs
     System, SimulParameters, DetectionClick, Trajectory,
     # Functions
-    states_atjumps,
-    states_att
     run_trajectories,
+    sample_single_trajectory,
+    evaluate_at_t,
+    states_at_jumps,
     MonitoringOperator
 end
