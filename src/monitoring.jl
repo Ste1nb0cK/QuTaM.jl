@@ -29,20 +29,20 @@ function jumpoperators_derivatives(Ls_par, theta, dtheta)
     return dLs
 end
 
-function writederivative!(dpsi::Union{Vector{ComplexF64}, SubArray{ComplexF64}},
+function writederivative!(dpsi::SubArray{ComplexF64, 1},
                           L::Matrix{ComplexF64},
-                          dL::Union{Matrix{ComplexF64}, SubArray{ComplexF64}},
+                          dL::SubArray{ComplexF64, 2},
                           V::Matrix{ComplexF64}, dV::Matrix{ComplexF64},
                           psi0::Vector{ComplexF64})
     dpsi .= (dL*V + L*dV)*psi0
 end
 
-function writederivative!(dpsi::Union{Vector{ComplexF64}, SubArray{ComplexF64}},
+function writederivative!(dpsi::SubArray{ComplexF64, 1},
                           L::Matrix{ComplexF64},
-                          dL::Union{Matrix{ComplexF64}, SubArray{ComplexF64}},
+                          dL::SubArray{ComplexF64, 2},
                           V::Matrix{ComplexF64}, dV::Matrix{ComplexF64},
-                          psi0::Union{Vector{ComplexF64}, SubArray{ComplexF64}},
-                          dpsi0::Union{Vector{ComplexF64}, SubArray{ComplexF64}})
+                          psi0::SubArray{ComplexF64, 1},#Union{Vector{ComplexF64}, SubArray{ComplexF64}},
+                          dpsi0::SubArray{ComplexF64, 1})
     dpsi .= (dL*V + L*dV)*psi0 + L*V*dpsi0
 end
 
