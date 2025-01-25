@@ -1,4 +1,4 @@
-function GetHeffParametrized(H_par::Function, Ls_par)::Function
+function getheff_parametrized(H_par::Function, Ls_par)::Function
     # here theta is expected to be a vector
     return (theta...) -> begin # Get an arbitrary number of arguments
         # The ... "splatts" the vector so it is passed as a tuple to the function
@@ -7,7 +7,7 @@ function GetHeffParametrized(H_par::Function, Ls_par)::Function
     end
 end
 
-function DerivativeExpHeff(Heff_par::Function, tau::Float64, theta::Vector{Float64}, dtheta::Vector{Float64})
+function expheff_derivative(Heff_par::Function, tau::Float64, theta::Vector{Float64}, dtheta::Vector{Float64})
     f1 =  exp(-1im*tau*Heff_par((theta + 2*dtheta)...))
     f2 =  exp(-1im*tau*Heff_par((theta + 1*dtheta)...))
     f3 =  exp(-1im*tau*Heff_par((theta - 1*dtheta)...))
@@ -15,7 +15,7 @@ function DerivativeExpHeff(Heff_par::Function, tau::Float64, theta::Vector{Float
     return (-f1 + 8*f2 - 8*f3 + f4 )/(12*norm(dtheta))
 end
 
-function DerivativesAtJumps(sys::System, Heff_par::Function, Ls_par, traj::Trajectory, psi0::Vector{ComplexF64}, theta::Vector{Float64},
+function derivatives_atjumps(sys::System, Heff_par::Function, Ls_par, traj::Trajectory, psi0::Vector{ComplexF64}, theta::Vector{Float64},
                             dtheta::Vector{Float64})
     # 0. Special Case: if the trajectory is empty, return an empty array
     if isempty(traj)
@@ -40,7 +40,7 @@ function DerivativesAtJumps(sys::System, Heff_par::Function, Ls_par, traj::Traje
     label = click.label
     tau = click.time
     dpsis[:, 1] .= dLs[:, :, label] * exp(-1im*tau*sys.Heff) * psi0 +
-                      sys.Ls[label] * DerivativeExpHeff(Heff_par, tau, theta, dtheta) * psi0 # Derivative
+                      sys.Ls[label] * expheff_derivative(Heff_par, tau, theta, dtheta) * psi0 # Derivative
     # In case there are no more jumps, return
     if njumps  == 1
         return dpsis
@@ -54,7 +54,7 @@ function DerivativesAtJumps(sys::System, Heff_par::Function, Ls_par, traj::Traje
       # Calculate the derivative
       dpsis[:, k] .= begin
                      (dLs[:, :, label]) * exp(-1im*tau*sys.Heff) * psitildes[:, k-1] +
-                     sys.Ls[label] * DerivativeExpHeff(Heff_par, tau, theta, dtheta) * psitildes[:, k-1] + # Derivative
+                     sys.Ls[label] * expheff_derivative(Heff_par, tau, theta, dtheta) * psitildes[:, k-1] + # Derivative
                      sys.Ls[label] * exp(-1im*tau*sys.Heff) * dpsis[:, k -1]
                      end
    end
@@ -63,7 +63,7 @@ function DerivativesAtJumps(sys::System, Heff_par::Function, Ls_par, traj::Traje
 end
 
 
-function MonitoringOperator(t_given::Vector{Float64},
+function monitoringoperator(t_given::Vector{Float64},
     sys::System, Heff_par::Function, Ls_par, traj::Trajectory, psi0::Vector{ComplexF64}, theta::Vector{Float64},
                             dtheta::Vector{Float64})
 
@@ -81,7 +81,7 @@ function MonitoringOperator(t_given::Vector{Float64},
     # Edge case
     if isempty(traj)
         while counter <= ntimes
-            tmp = DerivativeExpHeff(Heff_par, t_given[counter], theta, dtheta) * psi0
+            tmp = expheff_derivative(Heff_par, t_given[counter], theta, dtheta) * psi0
             xis[:, :, counter] = (adjoint(tmp) .* psi[:, counter] +  adjoint(psi[:, counter]) .* tmp)/dot(psi[:, counter], psi[:,counter])
             counter = counter + 1
             if counter > ntimes
@@ -92,14 +92,14 @@ function MonitoringOperator(t_given::Vector{Float64},
     end
     # Evaluations before first jump
     while (t_given[counter] < traj[counter_c].time) && (counter <= ntimes)
-            tmp = DerivativeExpHeff(Heff_par, t_given[counter], theta, dtheta) * psi0
+            tmp = expheff_derivative(Heff_par, t_given[counter], theta, dtheta) * psi0
             xis[:, :, counter] = (adjoint(tmp) .* psi[:, counter] +  adjoint(psi[:, counter]) .* tmp)/dot(psi[:, counter], psi[:, counter])
             counter = counter + 1
             if counter > ntimes
                 break
             end
     end
-    dpsijumps = DerivativesAtJumps(sys, Heff_par, Ls_par, traj, psi0, theta, dtheta)
+    dpsijumps = derivatives_atjumps(sys, Heff_par, Ls_par, traj, psi0, theta, dtheta)
     psijumps = states_atjumps(traj, sys, psi0; normalize=false)
     t_ = t_ + traj[counter_c].time
     counter_c = counter_c + 1
@@ -107,7 +107,7 @@ function MonitoringOperator(t_given::Vector{Float64},
     while (counter_c <= njumps) && (counter <= ntimes)
         timeclick = traj[counter_c].time
         while (t_ < t_given[counter] < t_ + timeclick) && (counter <= ntimes)
-            tmp = (DerivativeExpHeff(Heff_par, t_given[counter]-t_, theta, dtheta) * psijumps[:, counter_c-1]+
+            tmp = (expheff_derivative(Heff_par, t_given[counter]-t_, theta, dtheta) * psijumps[:, counter_c-1]+
                    exp(-1im*(t_given[counter]-t_)*sys.Heff)*dpsijumps[:, counter_c-1] )
             xis[ :, :,counter] = (adjoint(tmp) .* psi[ :, counter] +  adjoint(psi[:, counter]) .* tmp)/dot(psi[:, counter], psi[:, counter])
             counter = counter + 1
@@ -120,7 +120,7 @@ function MonitoringOperator(t_given::Vector{Float64},
     end
 
     while counter <= ntimes
-        tmp = (DerivativeExpHeff(Heff_par, t_given[counter]-t_, theta, dtheta) * psijumps[:, njumps]+
+        tmp = (expheff_derivative(Heff_par, t_given[counter]-t_, theta, dtheta) * psijumps[:, njumps]+
                    exp(-1im*(t_given[counter]-t_)*sys.Heff)*dpsijumps[:, njumps] )
         xis[ :, :,counter] = (adjoint(tmp) .* psi[ :, counter] +  adjoint(psi[:, counter]) .* tmp)/dot(psi[:, counter], psi[:, counter])
         counter = counter + 1

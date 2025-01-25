@@ -59,7 +59,7 @@ using Test, BackAction, LinearAlgebra
     # Parametrization
     H_parametrized = (delta::Float64, gamma::Float64) -> (0.5*delta*adjoint(a)*a)::Matrix{ComplexF64}
     L_parametrized = (delta::Float64, gamma::Float64) -> (sqrt(gamma)*a)::Matrix{ComplexF64}
-    He_parametrized = BackAction.GetHeffParametrized(H_parametrized, [L_parametrized])
+    He_parametrized = BackAction.getheff_parametrized(H_parametrized, [L_parametrized])
     trajectories = run_trajectories(sys, params)
 
     ntimes = 1000
@@ -71,7 +71,7 @@ using Test, BackAction, LinearAlgebra
     theta = [BackAction.rd_deltaomega, BackAction.rd_gamma]
     dtheta = [0.0, BackAction.rd_gamma/100]
     for n in 1:params.ntraj
-        xi_sample[:, :, :, n] = MonitoringOperator(t_given, sys, He_parametrized, [L_parametrized], trajectories[n], params.psi0,
+        xi_sample[:, :, :, n] = monitoringoperator(t_given, sys, He_parametrized, [L_parametrized], trajectories[n], params.psi0,
                                                    theta, dtheta)
     end
     contribution_sample = Array{Float64}(undef, ntimes, params.ntraj)

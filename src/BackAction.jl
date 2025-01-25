@@ -25,7 +25,7 @@ export
     # Functions
     run_trajectories,
     sample_single_trajectory,
-    evaluate_at_t,
-    states_at_jumps,
-    MonitoringOperator
+    states_att,
+    states_atjumps,
+    monitoringoperator
 end
