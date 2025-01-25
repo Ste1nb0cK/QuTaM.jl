@@ -1,5 +1,5 @@
 # This test evaluates if the trace of the monitoring operator is working
-using Test, QuTaM, LinearAlgebra
+using Test, BackAction, LinearAlgebra
 ####################### CASE: HAMILTONIAN COMMUTES WITH ITS DERIVATIVE
 # Consider a radiative damping for the case of an N-level system.
 # The logarithmic derivatives of the trajectory distribution
@@ -38,9 +38,9 @@ using Test, QuTaM, LinearAlgebra
     end
 
     EPS = 1e-5 # Tolerance
-    GAMMA = QuTaM.rd_gamma
+    GAMMA = BackAction.rd_gamma
 
-    H = 0.5*QuTaM.rd_deltaomega*adjoint(a)*a
+    H = 0.5*BackAction.rd_deltaomega*adjoint(a)*a
     L = sqrt(GAMMA)*a
     sys = System(H, [L]);
 
@@ -59,7 +59,7 @@ using Test, QuTaM, LinearAlgebra
     # Parametrization
     H_parametrized = (delta::Float64, gamma::Float64) -> (0.5*delta*adjoint(a)*a)::Matrix{ComplexF64}
     L_parametrized = (delta::Float64, gamma::Float64) -> (sqrt(gamma)*a)::Matrix{ComplexF64}
-    He_parametrized = QuTaM.GetHeffParametrized(H_parametrized, [L_parametrized])
+    He_parametrized = BackAction.GetHeffParametrized(H_parametrized, [L_parametrized])
     trajectories = run_trajectories(sys, params)
 
     ntimes = 1000
@@ -68,8 +68,8 @@ using Test, QuTaM, LinearAlgebra
     EPS = 0.1 # Difference tolerance for the test
 
     xi_sample = Array{ComplexF64}(undef, sys.NLEVELS, sys.NLEVELS, ntimes, params.ntraj)
-    theta = [QuTaM.rd_deltaomega, QuTaM.rd_gamma]
-    dtheta = [0.0, QuTaM.rd_gamma/100]
+    theta = [BackAction.rd_deltaomega, BackAction.rd_gamma]
+    dtheta = [0.0, BackAction.rd_gamma/100]
     for n in 1:params.ntraj
         xi_sample[:, :, :, n] = MonitoringOperator(t_given, sys, He_parametrized, [L_parametrized], trajectories[n], params.psi0,
                                                    theta, dtheta)
@@ -86,7 +86,7 @@ using Test, QuTaM, LinearAlgebra
             flag = abs(
                 contribution_sample[t, k] - analytical_contribution(t_given[t],
                                                                     trajectories[k],
-                                                                    QuTaM.rd_gamma,
+                                                                    BackAction.rd_gamma,
                                                                     sys.NLEVELS-1)) < EPS
             flag || @warn "Failure at trajectory=$k, t=$t"
             @test flag

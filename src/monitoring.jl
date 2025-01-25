@@ -46,7 +46,7 @@ function DerivativesAtJumps(sys::System, Heff_par::Function, Ls_par, traj::Traje
         return dpsis
     end
     # 3. Go over the rest of the jumps
-    psitildes = states_at_jumps(traj, sys, psi0; normalize=false)
+    psitildes = states_atjumps(traj, sys, psi0; normalize=false)
     for k in 2:njumps
       click = traj[k]
       label = click.label
@@ -71,7 +71,7 @@ function MonitoringOperator(t_given::Vector{Float64},
     if isempty(t_given)
         return Array{ComplexF64}(undef, 0, 0, 0)
     end
-    psi = evaluate_at_t(t_given, traj, sys, psi0; normalize=false)
+    psi = states_att(t_given, traj, sys, psi0; normalize=false)
     ntimes = size(t_given)[1]
     njumps = size(traj)[1]
     t_ = 0
@@ -100,7 +100,7 @@ function MonitoringOperator(t_given::Vector{Float64},
             end
     end
     dpsijumps = DerivativesAtJumps(sys, Heff_par, Ls_par, traj, psi0, theta, dtheta)
-    psijumps = states_at_jumps(traj, sys, psi0; normalize=false)
+    psijumps = states_atjumps(traj, sys, psi0; normalize=false)
     t_ = t_ + traj[counter_c].time
     counter_c = counter_c + 1
     # Evaluation after first jump
