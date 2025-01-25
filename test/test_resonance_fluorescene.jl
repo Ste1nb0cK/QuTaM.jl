@@ -1,9 +1,9 @@
 import HypothesisTests, Distributions
-using QuTaM, LinearAlgebra, Statistics, Random, QuadGK, Test, Plots,
+using BackAction, LinearAlgebra, Statistics, Random, QuadGK, Test, Plots,
     OrdinaryDiffEq
 ########## Setup
-sys = QuTaM.rf_sys
-params = QuTaM.rf_params
+sys = BackAction.rf_sys
+params = BackAction.rf_params
 r0 = [0.0; 0.0; -1.0] # Initial Condition
 tspan = (0.0, params.tf)
 t_given = collect(LinRange(0, params.tf, 1000));
@@ -12,7 +12,7 @@ t_given = collect(LinRange(0, params.tf, 1000));
 # Generate a set of trajectories and states
 println("Sampling clicks\n")
 @time begin
-    sample_clicks = QuTaM.run_trajectories(sys, params)
+    sample_clicks = BackAction.run_trajectories(sys, params; isrenewal=true)
 end
 ntimes = size(t_given)[1]
 sample = zeros(ComplexF64,  sys.NLEVELS, ntimes, params.ntraj) # states
@@ -20,13 +20,13 @@ sample = zeros(ComplexF64,  sys.NLEVELS, ntimes, params.ntraj) # states
 println("Obtaining states between jumps\n")
 @time begin
     for n in 1:params.ntraj
-        states = QuTaM.evaluate_at_t(t_given, sample_clicks[n], sys,  params.psi0)
+        states = BackAction.states_att(t_given, sample_clicks[n], sys,  params.psi0)
                 sample[:, :, n] = states[:, :]
     end
 end
 # Obtain the value of the observables
 r_sample = zeros(Float64, ntimes, 3, params.ntraj)
-sigma = [QuTaM.sigma_x, QuTaM.sigma_y, QuTaM.sigma_z]
+sigma = [BackAction.sigma_x, BackAction.sigma_y, BackAction.sigma_z]
 println("Calculating expectation of observables\n")
 
 @time begin
@@ -87,7 +87,7 @@ function Base.rand(rng::AbstractRNG, d::WTD_rf)
     return t  # Return a sample
 end
 
-f = WTD_rf(QuTaM.rf_gamma, QuTaM.rf_omega) # Instance of the WTD
+f = WTD_rf(BackAction.rf_gamma, BackAction.rf_omega) # Instance of the WTD
 println("Sampling from the analytical WTD\n")
 @time begin
     f_sample = rand(f, 500) # Sample from the WTD
@@ -109,9 +109,9 @@ plot!(t_given, Distributions.pdf.(f, t_given), label="Analytical")
 ################ Visual test of the observables
 # System of equations for RF (Source: Wiseman section 3.3.1)
 function rf_de!(dr, r, p, t)
-    gamma = QuTaM.rf_gamma
-    delta = QuTaM.rf_delta
-    omega = QuTaM.rf_omega
+    gamma = BackAction.rf_gamma
+    delta = BackAction.rf_delta
+    omega = BackAction.rf_omega
     dr[1] = -0.5*gamma*r[1] - 2*delta*r[2]
     dr[2] = 2*delta*r[1] - 0.5*gamma*r[2] - 2*omega*r[3]
     dr[3] = 2*omega*r[2] - gamma*(r[3] + 1)

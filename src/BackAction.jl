@@ -1,16 +1,18 @@
-module QuTaM
+module BackAction
 
 # Dependencies
-using LinearAlgebra, Statistics, ProgressMeter, Base.Threads
-import Random, StatsBase
+using LinearAlgebra
+using Statistics
+using ProgressMeter
+using Base.Threads
+import Random
+import StatsBase
 
 # Source files
 include("structs.jl")
 include("precompute.jl")
-include("jump_pure_functions.jl")
-include("jump_mixed_functions.jl")
+include("functions_jump.jl")
 include("run_trajectories.jl")
-include("sample_single_trajectory.jl")
 include("monitoring.jl")
 # Utilities
 include("../util/pauli_m.jl")
@@ -23,7 +25,7 @@ export
     # Functions
     run_trajectories,
     sample_single_trajectory,
-    evaluate_at_t,
-    states_at_jumps,
-    MonitoringOperator
+    states_att,
+    states_atjumps,
+    monitoringoperator
 end

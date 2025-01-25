@@ -4,7 +4,7 @@ rdt_n = 1
 rdt_gamma1 = (rdt_n+1)*rdt_gamma
 rdt_gamma2 = (rdt_n)*rdt_gamma
 rdt_sys = System( zeros(ComplexF64, 2, 2), # Hamiltonian
-    [sqrt(rdt_gamma1)*QuTaM.sigma_m, sqrt(rdt_gamma2)*QuTaM.sigma_p ]) #Jump Operators
+    [sqrt(rdt_gamma1)*BackAction.sigma_m, sqrt(rdt_gamma2)*BackAction.sigma_p ]) #Jump Operators
 #### 2. Create the simulation parameters instance
 rdt_psi0 = zeros(ComplexF64, 2)
 rdt_psi0[2] = 1 # Initial condition
