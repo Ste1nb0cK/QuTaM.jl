@@ -86,6 +86,24 @@ function derivatives_atjumps(sys::System, Heff_par::Function, Ls_par, traj::Traj
 
 end
 
+function writexi!(xi::SubArray{ComplexF64, 2}, dV::Matrix{ComplexF64},
+                  psi::SubArray{ComplexF64, 1}, psi0::Vector{ComplexF64})
+    xi .= ((dV*psi0).*adjoint(psi)+psi.*adjoint(dV*psi0))/dot(psi, psi)
+end
+
+function writexi!(xi::SubArray{ComplexF64, 2}, V::Matrix{ComplexF64}, dV::Matrix{ComplexF64},
+                   psijump::SubArray{ComplexF64, 1}, dpsijump::SubArray{ComplexF64, 1},
+                  psi::SubArray{ComplexF64, 1}
+                  )
+    xi .= ((dV*psijump + V*dpsijump).*adjoint(psi)+psi.*adjoint(dV*psijump + V*dpsijump))/dot(psi, psi)
+end
+
+     # tmp = (expheff_derivative(Heff_par, t_given[counter]-t_, theta, dtheta) * psijumps[:, counter_c-1]+
+                   # exp(-1im*(t_given[counter]-t_)*sys.Heff)*dpsijumps[:, counter_c-1] )
+            # xis[ :, :,counter] = (adjoint(tmp) .* psi[ :, counter] +  adjoint(psi[:, counter]) .* tmp)/dot(psi[:, counter], psi[:, counter])
+
+
+
 
 function monitoringoperator(t_given::Vector{Float64},
     sys::System, Heff_par::Function, Ls_par, traj::Trajectory, psi0::Vector{ComplexF64}, theta::Vector{Float64},
@@ -105,8 +123,9 @@ function monitoringoperator(t_given::Vector{Float64},
     # Edge case
     if isempty(traj)
         while counter <= ntimes
-            tmp = expheff_derivative(Heff_par, t_given[counter], theta, dtheta) * psi0
-            xis[:, :, counter] = (adjoint(tmp) .* psi[:, counter] +  adjoint(psi[:, counter]) .* tmp)/dot(psi[:, counter], psi[:,counter])
+            writexi!(fixlastindex(xis, counter),
+                     expheff_derivative(Heff_par, t_given[counter], theta, dtheta),
+                     fixlastindex(psi, counter), psi0)
             counter = counter + 1
             if counter > ntimes
                 break
@@ -116,8 +135,9 @@ function monitoringoperator(t_given::Vector{Float64},
     end
     # Evaluations before first jump
     while (t_given[counter] < traj[counter_c].time) && (counter <= ntimes)
-            tmp = expheff_derivative(Heff_par, t_given[counter], theta, dtheta) * psi0
-            xis[:, :, counter] = (adjoint(tmp) .* psi[:, counter] +  adjoint(psi[:, counter]) .* tmp)/dot(psi[:, counter], psi[:, counter])
+             writexi!(fixlastindex(xis, counter),
+                     expheff_derivative(Heff_par, t_given[counter], theta, dtheta),
+                     fixlastindex(psi, counter), psi0)
             counter = counter + 1
             if counter > ntimes
                 break
@@ -131,9 +151,10 @@ function monitoringoperator(t_given::Vector{Float64},
     while (counter_c <= njumps) && (counter <= ntimes)
         timeclick = traj[counter_c].time
         while (t_ < t_given[counter] < t_ + timeclick) && (counter <= ntimes)
-            tmp = (expheff_derivative(Heff_par, t_given[counter]-t_, theta, dtheta) * psijumps[:, counter_c-1]+
-                   exp(-1im*(t_given[counter]-t_)*sys.Heff)*dpsijumps[:, counter_c-1] )
-            xis[ :, :,counter] = (adjoint(tmp) .* psi[ :, counter] +  adjoint(psi[:, counter]) .* tmp)/dot(psi[:, counter], psi[:, counter])
+            writexi!(fixlastindex(xis, counter), exp(-1im*(t_given[counter]-t_)*sys.Heff),
+                     expheff_derivative(Heff_par, t_given[counter]-t_, theta, dtheta),
+                     fixlastindex(psijumps, counter_c-1), fixlastindex(dpsijumps, counter_c-1),
+                     fixlastindex(psi, counter))
             counter = counter + 1
             if counter > ntimes
                 break
@@ -144,9 +165,11 @@ function monitoringoperator(t_given::Vector{Float64},
     end
 
     while counter <= ntimes
-        tmp = (expheff_derivative(Heff_par, t_given[counter]-t_, theta, dtheta) * psijumps[:, njumps]+
-                   exp(-1im*(t_given[counter]-t_)*sys.Heff)*dpsijumps[:, njumps] )
-        xis[ :, :,counter] = (adjoint(tmp) .* psi[ :, counter] +  adjoint(psi[:, counter]) .* tmp)/dot(psi[:, counter], psi[:, counter])
+        writexi!(fixlastindex(xis, counter), exp(-1im*(t_given[counter]-t_)*sys.Heff),
+                     expheff_derivative(Heff_par, t_given[counter]-t_, theta, dtheta),
+                     fixlastindex(psijumps, njumps), fixlastindex(dpsijumps, njumps),
+                     fixlastindex(psi, counter))
+
         counter = counter + 1
     end
     return xis
