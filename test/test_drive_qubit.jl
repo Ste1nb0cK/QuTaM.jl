@@ -1,6 +1,6 @@
 # This visual test is intended to test the evolution of mixed states
 # # Import all the necessary libraries
-libraries = ["QuTaM", "LinearAlgebra", "Statistics", "Plots", "LaTeXStrings", "OrdinaryDiffEq"]
+libraries = ["BackAction", "LinearAlgebra", "Statistics", "Plots", "LaTeXStrings", "OrdinaryDiffEq"]
 
 function ensure_imports(packages::Vector{String})
     for pkg in packages
@@ -25,10 +25,10 @@ delta = 1.43
 gamma = 1.0
 omega = 1.3
 nbar = 0.2
-H = 0.5*delta * QuTaM.sigma_z + 0.5*omega*QuTaM.sigma_x
+H = 0.5*delta * BackAction.sigma_z + 0.5*omega*BackAction.sigma_x
 # Define the jump operators
-L1 = sqrt(gamma*(nbar+1))*QuTaM.sigma_m
-L2 = sqrt(gamma*(nbar))*QuTaM.sigma_p
+L1 = sqrt(gamma*(nbar+1))*BackAction.sigma_m
+L2 = sqrt(gamma*(nbar))*BackAction.sigma_p
 # Define the system
 # As initial condition use a mixture of |+> and |-> states
 plus = 0.5* [[1.0+0im, 1] [1,  1]]
@@ -56,7 +56,7 @@ end
 sampled_trajectories = run_trajectories(sys, params);
 
 # Lindblad Evolution of Observables
-sigma = [QuTaM.sigma_x, QuTaM.sigma_y, QuTaM.sigma_z]
+sigma = [BackAction.sigma_x, BackAction.sigma_y, BackAction.sigma_z]
 x0 = real
 r0 = zeros(Float64, 3)
 for k in 1:3
@@ -73,7 +73,7 @@ sol = solve(prob, reltol = 1e-6, saveat = t_given);
 ntimes = size(t_given)[1]
 sample = zeros(ComplexF64, sys.NLEVELS, sys.NLEVELS, ntimes, params.ntraj)
 for n in 1:params.ntraj
-    sample[:, :, :, n]  = QuTaM.evaluate_at_t(t_given, sampled_trajectories[n], sys,  params.psi0)
+    sample[:, :, :, n]  = BackAction.states_att(t_given, sampled_trajectories[n], sys,  params.psi0)
 end
 # Evaluate the observables
 r_sample = zeros(Float64, ntimes, 3, params.ntraj)

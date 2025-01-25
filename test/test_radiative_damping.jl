@@ -33,7 +33,7 @@ ntimes = 1000
 t = collect(LinRange(0, params.tf, ntimes))
 sample = Array{ComplexF64}(undef, sys.NLEVELS, ntimes, params.ntraj);
 for n in 1:params.ntraj
-    sample[:, :, n] = BackAction.evaluate_at_t(t, sample_clicks[n], sys,  params.psi0)
+    sample[:, :, n] = BackAction.states_att(t, sample_clicks[n], sys,  params.psi0)
 end
 # Check that all states are normalized
 global local_flag = true

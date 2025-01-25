@@ -20,7 +20,7 @@ sample = zeros(ComplexF64,  sys.NLEVELS, ntimes, params.ntraj) # states
 println("Obtaining states between jumps\n")
 @time begin
     for n in 1:params.ntraj
-        states = BackAction.evaluate_at_t(t_given, sample_clicks[n], sys,  params.psi0)
+        states = BackAction.states_att(t_given, sample_clicks[n], sys,  params.psi0)
                 sample[:, :, n] = states[:, :]
     end
 end
