@@ -15,16 +15,10 @@ function expheff_derivative(Heff_par::Function, tau::Float64, theta::Vector{Floa
     return (-f1 + 8*f2 - 8*f3 + f4 )/(12*norm(dtheta))
 end
 
-function derivatives_atjumps(sys::System, Heff_par::Function, Ls_par, traj::Trajectory, psi0::Vector{ComplexF64}, theta::Vector{Float64},
-                            dtheta::Vector{Float64})
-    # 0. Special Case: if the trajectory is empty, return an empty array
-    if isempty(traj)
-        return Array{ComplexF64}(undef, 0, 0)
-    end
-    # 1. Get the derivatives of L
+function jumpoperators_derivatives(Ls_par, theta, dtheta)
     nchannels = size(Ls_par)[1]
-    dLs = zeros(ComplexF64, sys.NLEVELS, sys.NLEVELS, nchannels)
-
+    nlevels = size(Ls_par[1](theta...))[1]
+    dLs = zeros(ComplexF64, nlevels, nlevels, nchannels)
     for k in 1:nchannels
         f1 = Ls_par[k]((theta + 2*dtheta)...)
         f2 = Ls_par[k]((theta+dtheta)...)
@@ -32,15 +26,45 @@ function derivatives_atjumps(sys::System, Heff_par::Function, Ls_par, traj::Traj
         f4 = Ls_par[k]((theta-2*dtheta)...)
         dLs[:, :, k] = (-f1 + 8*f2 - 8*f3 + f4 )/(12*norm(dtheta))
     end
-    # 2.1 Setup
+    return dLs
+end
+
+function writederivative!(dpsi::Union{Vector{ComplexF64}, SubArray{ComplexF64}},
+                          L::Matrix{ComplexF64},
+                          dL::Union{Matrix{ComplexF64}, SubArray{ComplexF64}},
+                          V::Matrix{ComplexF64}, dV::Matrix{ComplexF64},
+                          psi0::Vector{ComplexF64})
+    dpsi .= (dL*V + L*dV)*psi0
+end
+
+function writederivative!(dpsi::Union{Vector{ComplexF64}, SubArray{ComplexF64}},
+                          L::Matrix{ComplexF64},
+                          dL::Union{Matrix{ComplexF64}, SubArray{ComplexF64}},
+                          V::Matrix{ComplexF64}, dV::Matrix{ComplexF64},
+                          psi0::Union{Vector{ComplexF64}, SubArray{ComplexF64}},
+                          dpsi0::Union{Vector{ComplexF64}, SubArray{ComplexF64}})
+    dpsi .= (dL*V + L*dV)*psi0 + L*V*dpsi0
+end
+
+function derivatives_atjumps(sys::System, Heff_par::Function, Ls_par, traj::Trajectory, psi0::Vector{ComplexF64}, theta::Vector{Float64},
+                            dtheta::Vector{Float64})
+    # 0. Special Case: if the trajectory is empty, return an empty array
+    if isempty(traj)
+        return Array{ComplexF64}(undef, 0, 0)
+    end
+    # 1. Get the derivatives of L
+    dLs = jumpoperators_derivatives(Ls_par, theta, dtheta)
+   # 2.1 Setup
     njumps = size(traj)[1]
     dpsis = zeros(ComplexF64, sys.NLEVELS, njumps)
     # 2.2 Set up the first jump
     click = traj[1]
     label = click.label
     tau = click.time
-    dpsis[:, 1] .= dLs[:, :, label] * exp(-1im*tau*sys.Heff) * psi0 +
-                      sys.Ls[label] * expheff_derivative(Heff_par, tau, theta, dtheta) * psi0 # Derivative
+    writederivative!(fixlastindex(dpsis, 1),
+                     sys.Ls[label], fixlastindex(dLs, label),
+                     exp(-1im*tau*sys.Heff),
+                     expheff_derivative(Heff_par, tau, theta, dtheta), psi0)
     # In case there are no more jumps, return
     if njumps  == 1
         return dpsis
@@ -52,11 +76,11 @@ function derivatives_atjumps(sys::System, Heff_par::Function, Ls_par, traj::Traj
       label = click.label
       tau = click.time
       # Calculate the derivative
-      dpsis[:, k] .= begin
-                     (dLs[:, :, label]) * exp(-1im*tau*sys.Heff) * psitildes[:, k-1] +
-                     sys.Ls[label] * expheff_derivative(Heff_par, tau, theta, dtheta) * psitildes[:, k-1] + # Derivative
-                     sys.Ls[label] * exp(-1im*tau*sys.Heff) * dpsis[:, k -1]
-                     end
+      writederivative!(fixlastindex(dpsis, k),
+                         sys.Ls[label], fixlastindex(dLs, label),
+                         exp(-1im*tau*sys.Heff),
+                         expheff_derivative(Heff_par, tau, theta, dtheta),
+                         fixlastindex(psitildes, k-1), fixlastindex(dpsis, k-1))
    end
    return dpsis
 
