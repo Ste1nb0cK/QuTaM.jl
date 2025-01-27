@@ -5,6 +5,7 @@
 *.rej
 docs/build/
 Manifest.toml
+docs/Manifest.toml
 docs/CondaPkg.toml
 docs/src/.auctex-auto/
 test/CondaPkg.toml
