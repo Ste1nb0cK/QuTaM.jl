@@ -1,14 +1,9 @@
 # BackAction.jl
-Yet another library for Open Quantum Systems and Quantum Information
-[![](https://img.shields.io/badge/docs-maker?style=flat&color=blue&link=https%3A%2F%2Fste1nb0ck.github.io%2FQuTaM.jl%2Fdev%2Findex.html)](https://ste1nb0ck.github.io/QuTaM.jl/dev/index.html)
+Yet another library for Open Quantum Systems and Quantum Information.
+[![](https://img.shields.io/badge/docs-maker?style=flat&color=blue&link=https%3A%2F%2Fste1nb0ck.github.io%2FQuTaM.jl%2Fdev%2Findex.html)](https://ste1nb0ck.github.io/BackAction.jl/dev/)
 
-See the [tutorial](https://ste1nb0ck.github.io/QuTaM.jl/dev/tutorial.html) 
-and the full [documentation](https://ste1nb0ck.github.io/QuTaM.jl/dev/index.html).
+To get started checkout the [documentation](https://ste1nb0ck.github.io/BackAction.jl/dev/).
 
-Recommended: in case you run into very long precompilation times each time you want to use the library [see](https://www.youtube.com/watch?v=_3vJSBk0Bls&t=15s).
-
-For a more elaborated example look at `resonance_fluorescene.ipynb`.
-## Installation
 ## Installation
 For the moment the library is not available through Pkg, so you will need to clone the repository 
 
