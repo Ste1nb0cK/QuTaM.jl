@@ -26,7 +26,7 @@ makedocs(;
   # Configure output format
   format = Documenter.HTML(;
     prettyurls = get(ENV, "CI", "false") ==  true,
-    canonical = "https://abelsiqueira.github.io/COPIERTemplate.jl", # Canonical URL
+    # canonical = "https://abelsiqueira.github.io/COPIERTemplate.jl", # Canonical URL
 
   ),
   # Define the structure of the site
@@ -41,4 +41,5 @@ makedocs(;
   plugins=[bib]
 )
 
-deploydocs(; repo = "github.com/Ste1nb0cK/BackAction.jl", push_preview = false)
+deploydocs(; repo = "github.com/Ste1nb0cK/BackAction.jl"
+           )
