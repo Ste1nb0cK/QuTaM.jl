@@ -1,4 +1,4 @@
-# Quantum Trajectories and Metrology
+# BackAction.jl
 Yet another library for Open Quantum Systems and Quantum Information
 [![](https://img.shields.io/badge/docs-maker?style=flat&color=blue&link=https%3A%2F%2Fste1nb0ck.github.io%2FQuTaM.jl%2Fdev%2Findex.html)](https://ste1nb0ck.github.io/QuTaM.jl/dev/index.html)
 

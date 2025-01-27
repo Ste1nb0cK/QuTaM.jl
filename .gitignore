@@ -6,6 +6,7 @@
 docs/build/
 Manifest.toml
 docs/CondaPkg.toml
+docs/src/.auctex-auto/
 test/CondaPkg.toml
 test/conda-env
 node_modules
