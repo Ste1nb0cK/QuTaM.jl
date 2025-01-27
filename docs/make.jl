@@ -4,13 +4,18 @@ using DocumenterCitations
 # Set up the bibliography
 bib = CitationBibliography(joinpath(@__DIR__, "src", "refs.bib"))
 
-
 makedocs(;
   modules = [BackAction], # Specify the module to document
+  doctest = true,
   authors = "Nicolás A. Niño <ninino@unal.edu.co>",
   sitename = "BackAction.jl",
+  repo = "https://github.com/Ste1nb0cK/BackAction.jl/blob/{commit}{path}#{line}",
   # Configure output format
-  format = Documenter.HTML(repolink = "..."),
+  format = Documenter.HTML(;
+                           prettyurls = true,
+                           canonical = "https://github.com/Ste1nb0cK/BackAction.jl",
+                           assets = ["assets/style.css"],
+                           ),
 
   # Define the structure of the site
   pages = [
@@ -21,10 +26,9 @@ makedocs(;
       "Monitoring Quantum Metrology" => "monitoring_metrology.md",
       "Bibliography" => "bibliography.md"
   ],
-  repo = "https://github.com/Ste1nb0cK/BackAction.jl/blob/{commit}{path}#{line}",
   plugins=[bib]
 )
 
 deploydocs(;
            repo = "github.com/Ste1nb0cK/BackAction.jl",
-           devurl="dev")
+           push_preview=true)
