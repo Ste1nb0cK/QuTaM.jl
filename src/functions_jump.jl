@@ -1,22 +1,77 @@
-# Function that returns a view of the given array, with the last index fixed at k
+"""
+
+```
+fixlastindex(array::Array{ComplexF64}, k::Int64)
+```
+
+Return a `SubArray` of `array`, defined by fixing the last index to `k`.
+# Example
+```jldoctest
+using BackAction
+arr = [[1+1.0im, 2] [3, 4]]
+BackAction.fixlastindex(arr, 2)
+# output
+2-element view(::Matrix{ComplexF64}, :, 2) with eltype ComplexF64:
+ 3.0 + 0.0im
+ 4.0 + 0.0im
+```
+
+"""
 function fixlastindex(array::Array{ComplexF64}, k::Int64)
     indices = ntuple(d -> d == ndims(array) ? k : Colon(), ndims(array))
     # Add a singleton of dimension 1
     return view(array, indices...)
 end
 
+
+"""
+
+```
+calculatewtdweights!(W::Array{Float64}, Qs::Array{ComplexF64}, psi::Vector{ComplexF64},
+                                        params::SimulParameters)
+```
+
+Calculate the discretized *Waiting Time Distribution* for a pure state ``|\\psi\\rangle`` i.e.
+``\\langle\\psi|Q(t_s)\\psi\\rangle``, and writes it at `W`. This is done using `LinearAlgebra`'s `dot`,
+and usually is the thing in which `run_singletrajectory` spends most of the time since `params.nsamples`
+is typically in the thousands.
+"""
 function calculatewtdweights!(W::Array{Float64}, Qs::Array{ComplexF64}, psi::Vector{ComplexF64}, params::SimulParameters)
     @inbounds @simd for k in 1:params.nsamples
            W[k] = real(dot(psi, Qs[:, :, k], psi)) # dot product without storing A*x. THIS IS THE KEY FOR SPEED
         end
 end
 
+
+"""
+
+```
+calculatewtdweights!(W::Array{Float64}, Qs::Array{ComplexF64}, psi::Matrix{ComplexF64},
+                                         params::SimulParameters)
+```
+
+Calculate the discretized *Waiting Time Distribution* for a mixed state ``\\psi`` i.e.
+``\\mathrm{Tr}(Q(t_s)\\psi)``, and writes it at `W`. This is done using `LinearAlgebra`'s `tr`,
+and usually is the thing in which `run_singletrajectory` spends most of the time since `params.nsamples`
+is typically in the thousands.
+"""
 function calculatewtdweights!(W::Array{Float64}, Qs::Array{ComplexF64}, psi::Matrix{ComplexF64}, params::SimulParameters)
     @inbounds @simd for k in 1:params.nsamples
            W[k] = real(tr(Qs[:, :, k] * psi))
         end
 end
 
+
+"""
+
+```
+calculatechannelweights!(P::Vector{Float64}, psi::Vector{ComplexF64}, sys::System)
+```
+
+Calculate the probabilities for a pure state ``|\\psi\\rangle`` to jump to any of the given channels i.e.
+``\\langle\\psi| L^\\dagger L|\\psi\\rangle`` for each jump operator ``L``, and writes it at `P`.
+ This is done using the square of `LinearAlgebra`'s `norm`.
+"""
 function calculatechannelweights!(P::Vector{Float64}, psi::Vector{ComplexF64}, sys::System)
     aux_P = real(dot(psi, sys.J * psi))
     @inbounds @simd for k in 1:sys.NCHANNELS
@@ -25,15 +80,35 @@ function calculatechannelweights!(P::Vector{Float64}, psi::Vector{ComplexF64}, s
     P .= P / aux_P
 end
 
+
+"""
+
+```
+calculatechannelweights!(P::Vector{Float64}, psi::Matrix{ComplexF64}, sys::System)
+```
+
+Calculate the probabilities for a mixed state ``\\psi`` to jump to any of the given channels i.e.
+``\\mathrm{Tr}(L^\\dagger L\\psi)`` for each jump operator ``L``, and writes it at `P`.
+ This is done using of `LinearAlgebra`'s `tr`.
+"""
 function calculatechannelweights!(P::Vector{Float64}, psi::Matrix{ComplexF64}, sys::System)
     aux_P = real(dot(psi, sys.J * psi))
     @inbounds @simd for k in 1:sys.NCHANNELS
-        P[k] = real(tr(sys.LLs[k]*psi))
+       P[k] = real(tr(sys.LLs[k]*psi))
     end
     P .= P / aux_P
 end
 
-# Pure state versions
+
+"""
+
+```
+prejumpupdate!(V::Matrix{ComplexF64}, psi::Vector{ComplexF64}; normalize=false)
+```
+
+Do the pure state transformation ``|\\psi\\rangle\\to V|\\psi\\rangle`` modifying `psi` ,
+if `normalize=true` it also normalizes the final state.
+"""
 function prejumpupdate!(V::Matrix{ComplexF64}, psi::Vector{ComplexF64}; normalize=false)
     psi .= V * psi
     if normalize
@@ -41,6 +116,16 @@ function prejumpupdate!(V::Matrix{ComplexF64}, psi::Vector{ComplexF64}; normaliz
     end
 end
 
+
+"""
+
+```
+prejumpupdate!(psi::Vector{ComplexF64}, V::Matrix{ComplexF64},
+               psi0::Union{Vector{ComplexF64}, SubArray{ComplexF64}}; normalize=false)
+```
+Do the pure state transformation ``|\\psi_0\\rangle\\to V|\\psi_0\\rangle`` and store the
+result in `psi`, if `normalize=true` it also normalizes the final state.
+"""
 function prejumpupdate!(psi::Vector{ComplexF64}, V::Matrix{ComplexF64},
                         psi0::Union{Vector{ComplexF64}, SubArray{ComplexF64}}; normalize=false)
     psi .= V * psi0
@@ -49,8 +134,16 @@ function prejumpupdate!(psi::Vector{ComplexF64}, V::Matrix{ComplexF64},
     end
 end
 
-# Mixed state versions
 
+"""
+
+```
+prejumpupdate!(psi::Matrix{ComplexF64}, V::Matrix{ComplexF64},
+               psi0::Union{Vector{ComplexF64}, SubArray{ComplexF64}}; normalize=false)
+```
+Do the mixed state transformation ``\\psi_0\\to V\\psi_0 V^\\dagger`` and store the
+result in `psi`, if `normalize=true` it also normalizes the final state.
+"""
 function prejumpupdate!(psi::Matrix{ComplexF64}, V::Matrix{ComplexF64},
                         psi0::Union{Matrix{ComplexF64}, SubArray{ComplexF64}}; normalize=false)
     psi .= V * psi0 * adjoint(V)
@@ -59,6 +152,16 @@ function prejumpupdate!(psi::Matrix{ComplexF64}, V::Matrix{ComplexF64},
     end
 end
 
+
+"""
+
+```
+prejumpupdate!(V::Matrix{ComplexF64}, psi::Vector{ComplexF64}; normalize=false)
+```
+
+Do the mixed state transformation ``\\psi\\to V\\psi V^\\dagger`` modifying `psi` ,
+if `normalize=true` it also normalizes the final state.
+"""
 function prejumpupdate!(V::Matrix{ComplexF64}, psi::Matrix{ComplexF64}; normalize=false)
     psi .= V * psi * adjoint(V)
     if normalize
@@ -66,6 +169,16 @@ function prejumpupdate!(V::Matrix{ComplexF64}, psi::Matrix{ComplexF64}; normaliz
     end
 end
 
+
+"""
+
+```
+postjumpupdate!(L::Matrix{ComplexF64}, psi::Vector{ComplexF64}; normalize=true)
+```
+
+Do the pure state transformation ``|\\psi\\rangle\\to L|\\psi\\rangle`` modifying `psi` ,
+if `normalize=true` it also normalizes the final state.
+"""
 function postjumpupdate!(L::Matrix{ComplexF64}, psi::Vector{ComplexF64}; normalize=true)
         psi .= L*psi # State without normalization
         if normalize
@@ -73,6 +186,16 @@ function postjumpupdate!(L::Matrix{ComplexF64}, psi::Vector{ComplexF64}; normali
         end
 end
 
+
+"""
+
+```
+postjumpupdate!(L::Matrix{ComplexF64}, psi::Vector{ComplexF64}; normalize=true)
+```
+
+Do the pure mixed state transformation ``\\psi\\to L\\psi L^\\dagger`` modifying `psi` ,
+if `normalize=true` it also normalizes the final state.
+"""
 function postjumpupdate!(L::Matrix{ComplexF64}, psi::Matrix{ComplexF64}; normalize=true)
         psi .= L*psi*adjoint(L) # State without normalization
         if normalize
@@ -83,34 +206,32 @@ end
 
 ############# Single Trajectory Routine ######################
 """
-    run_single_trajectories(sys::System, params::SimulParameters,
-     W::Vector{Float64}, P::Vector{Float64}, psi::Vector{ComplexF64},
-     ts::Vector{Float64}, Qs::Vector{Matrix{ComplexF64}};
-      seed::Int64 = 1) -> Trajectory
+```
+run_singletrajectory(sys::System, params::SimulParameters,
+    W::Vector{Float64}, P::Vector{Float64}, ts::Vector{Float64},
+    Qs::Array{ComplexF64}, Vs::Array{ComplexF64}; seed::Int64 = 1, isrenewal=false)
+```
 
-Sample a single trajectory from the system and parameters using the Gillipsie algorithm
-. This is inteded to be used by `run_trajectories`
+Sample a jump trajectory for the system `sys` using the
+ *Quantum Gillipsie Algorithm* [radaelli2024gillespie](@cite).
 
-# Requiered Arguments:
-- `sys::System`: System of interest
-- `params::SimulParameters`: simulation parameters
-- `W::Vector{Float64}`: to store the weights over the fine grid.
-- `P::Vector{Float64}`: to store the weights over the channels
-- `psi::Vector{ComplexF64}`: to store the current state vector
-- `ts::Vector{Float64}`: the finegrid of waiting times
-- `Qs::Vector{Matrix{ComplexF64}}`: 3-dimensional array for storing, dimensions must be (sys.NLEVELS, sys.NLEVELS, nsamples)
+# Positional Arguments
+- `sys::System`: the system from which the trajectory is obtained.
+- `params::SimulParameters`:  specifies the number of points
+                             in the grid, the initial state and the tolerance for the dark state test.
+- `W::Vector{Float64}`: to store the probabilities of the WTDs used at each step
+- `P::Vector{Float64}`: to store the probabilites of jumps to each channel used at each step
+- `ts::Vector{Float64}`: the fine grid used to sample from the WTD
+- `Qs::Array{ComplexF64}`: the precomputed matrices from which the WTD weights are calculated
+- `Vs::Array{ComplexF64}`:  the precomputed exponentials that evolve the state from jump to jump.
 
-# Optional Arguments:
-- `seed::Int64`: seed for generating the trajectory
-# Returns:
-The sample trajectory
+# Keyword Arguments
+- `seed::Int64 = 1`: the seed of the sample. It does not need to coincide with that in `params`
+- `isrenewal = false`: whether to optimize the WTD calculation exploiting that the process is renewal,
+                       if `true` the WTD is calculated a single time for the whole run.
 
-# Warning: the seed does not coincide with that of `params` by default.
-
-# Waning: final jump in the trajectory happens after final time
-The trajectory ends when a jump that happens after `params.tf` is obtained,
-yet that jump is stored in the trajectory. In other words, the last jump of the
-trajectory always happen after the set final time.
+# Returns
+- `traj::Trajectory`: vector with the obtained detection clicks.
 """
 function run_singletrajectory(sys::System, params::SimulParameters,
     W::Vector{Float64}, P::Vector{Float64}, ts::Vector{Float64},
@@ -145,40 +266,34 @@ function run_singletrajectory(sys::System, params::SimulParameters,
     return traj
 end
 
+
+"""
+```
+writestate!(states::array{complexf64}, psi::union{vector{complexf64},
+                                        matrix{complexf64}}, counter::int64)
+```
+Writes `psi` in `states` at the subarray with the last index fixed at `counter`.
+"""
 function writestate!(states::Array{ComplexF64},
                      psi::Union{Vector{ComplexF64}, Matrix{ComplexF64}}, counter::Int64)
              fixlastindex(states, counter) .= psi
 end
 
 
-
-# function writestate!(states::Array{ComplexF64}, psi::Vector{ComplexF64}, counter::Int64)
-            # states[:, counter] .= psi
-# end
-
-# function writestate!(states::Array{ComplexF64}, psi::Matrix{ComplexF64}, counter::Int64)
-            # states[:, :, counter] .= psi
-# end
-
-
-############ Evaluation at given times #######################
 """
-    statesat_jumps(traj::Trajectory, sys::System,
-                      psi0::Vector{ComplexF64}) - > Array{ComplexF64}
-From a given trajectory, recover the states at each jump.
+```
+states_atjumps(traj::Trajectory, sys::System, psi0::Union{Vector{ComplexF64},
+               Matrix{ComplexF64}}; normalize::Bool=true)
+```
+Obtain the states at jumps of the trajectory given the initial state `psi0`, they
+are (un)normalized if `normalize` is `true`(`false`). The return
+is an `Array` of dimensions `(sys.NLEVELS, njumps)` if the initial state was pure,
+and `(sys.NLEVELS, sys.NLEVELS, njumps)` if it was mixed; `njumps` is the number of
+jumps in the trajectory. You would access the state at the k-th jump with something
+like  `states_atjumps(traj, sys, psi0)[:, k]`.
 
-# Arguments
-- `traj::Trajectory`: Trajectory
-- `sys::System`: System of interest
-- `psi0::Vector{ComplexF64}`: Initial state
-# Optional Arguments
-- `normalize::Bool`: Whether to normalize the states or not, true by default
+In case `isempty(traj)=true` the returned array is also empty.
 
-# Returns
-`Array{ComplexF64}` with the states
-
-The dimensions of the returned array `s` are `(sys.NLEVELS, size(traj))`,
-so to recover the state vector at the ``n``-th jump one would do `s[:, n]`.
 """
 function states_atjumps(traj::Trajectory, sys::System,
                       psi0::Union{Vector{ComplexF64}, Matrix{ComplexF64}}; normalize::Bool=true)
@@ -200,25 +315,18 @@ function states_atjumps(traj::Trajectory, sys::System,
 end
 
 """
+```
+states_att(t_given::Vector{Float64}, traj::Trajectory, sys::System,
+                       psi0::Union{Vector{ComplexF64}, Matrix{ComplexF64}};
+                       normalize::Bool=true)
+```
+Provided the initial state  `psi0` obtain the states at the times in `t_given` on the trajectory,
+they are (un)normalized if `normalize` is `true`(`false`).
+ The return is an `Array` of dimensions `(sys.NLEVELS, ntimes)` if the initial state was pure
+and `(sys.NLEVELS, sys.NLEVELS, ntimes)` if it was mixed; `ntimes` is the number of
+times in `t_given`. In case `isempty(t_given)=true` the returned array is also empty.
 
-    evaluate_at_t(t_given::Vector{Float64}, traj::Trajectory, sys::System,
-                       psi0::Vector{ComplexF64}) -> Array{ComplexF64}
-
-Evaluate in between jumps of the given trajectory and initial state.
-The returned states are stored in a `Array{ComplexF64}` with dimensions
-(size(t_given), sys.NLEVELS).
-
-# Required Arguments
-- `t_given::Vector{Float64}`: times at which the trajectory is to be evalauted
-- `traj::Trajectory`: the trajectory
-- `sys::System`: the system to which the trajectory corresponds
-- `psi0::Vector{ComplexF64}`: the initial state of the trajectory
-# Optional Arguments
-- `normalize::Bool`: whether to normalize the states or not, true by default
-# Returns
-A complex two-dimensional array whose rows contain the states.
 """
-
 function states_att(t_given::Vector{Float64}, traj::Trajectory, sys::System,
                        psi0::Union{Vector{ComplexF64}, Matrix{ComplexF64}};
                        normalize::Bool=true)

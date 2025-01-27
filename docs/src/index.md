@@ -1,7 +1,6 @@
-```@meta
-CurrentModule = QuTaM
-```
+<!-- ```@meta -->
+<!-- CurrentModule = BackAction -->
+<!-- ``` -->
 
-# QuTaM
-
-Here I would write a good description of the library, if I had one.
+# BackAction.jl
+This is yet another library of Open Quantum Systems.

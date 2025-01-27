@@ -1,15 +1,3 @@
-""" run_trajectories(sys::System, params::SimulParameters) -> Vector{Trajectory}
-
-Sample multiple trajectories for a given system and parameters.
-
-# Arguments
-- `sys::System`: The quantum system to simulate, containing information about its structure, energy levels, and dynamics.
-- `params::SimulParameters`: A structure containing simulation parameters such as:
-- `progbar::Bool`: show progress bar or not. `true` by default.
-
-# Returns
-- `Vector{Trajectory}`: A vector containing the results of the simulated trajectories. Each element corresponds to a single trajectory and encapsulates relevant system state information over time.
-"""
 function run_trajectories(sys::System, params::SimulParameters; progbar::Bool = true, isrenewal::Bool=false)
     ## Precomputing
     t0 = params.dt # To avoid having jumps at 0

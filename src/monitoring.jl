@@ -1,3 +1,11 @@
+"""
+
+```
+getheff_parametrized(H_par::Function, Ls_par)
+```
+
+TODO: write this documentation
+"""
 function getheff_parametrized(H_par::Function, Ls_par)::Function
     # here theta is expected to be a vector
     return (theta...) -> begin # Get an arbitrary number of arguments
@@ -7,6 +15,15 @@ function getheff_parametrized(H_par::Function, Ls_par)::Function
     end
 end
 
+
+"""
+
+```
+expheff_derivative(Heff_par::Function, tau::Float64, theta::Vector{Float64}, dtheta::Vector{Float64})
+```
+
+TODO: write this documentation
+"""
 function expheff_derivative(Heff_par::Function, tau::Float64, theta::Vector{Float64}, dtheta::Vector{Float64})
     f1 =  exp(-1im*tau*Heff_par((theta + 2*dtheta)...))
     f2 =  exp(-1im*tau*Heff_par((theta + 1*dtheta)...))
@@ -15,6 +32,15 @@ function expheff_derivative(Heff_par::Function, tau::Float64, theta::Vector{Floa
     return (-f1 + 8*f2 - 8*f3 + f4 )/(12*norm(dtheta))
 end
 
+
+"""
+
+```
+jumpoperators_derivatives(Ls_par, theta, dtheta)
+```
+
+TODO: write this documentation
+"""
 function jumpoperators_derivatives(Ls_par, theta, dtheta)
     nchannels = size(Ls_par)[1]
     nlevels = size(Ls_par[1](theta...))[1]
@@ -29,6 +55,17 @@ function jumpoperators_derivatives(Ls_par, theta, dtheta)
     return dLs
 end
 
+"""
+
+```
+writederivative!(dpsi::SubArray{ComplexF64, 1}, L::Matrix{ComplexF64},
+                          dL::SubArray{ComplexF64, 2},
+                          V::Matrix{ComplexF64}, dV::Matrix{ComplexF64},
+                          psi0::Vector{ComplexF64})
+```
+
+TODO: write this documentation
+"""
 function writederivative!(dpsi::SubArray{ComplexF64, 1},
                           L::Matrix{ComplexF64},
                           dL::SubArray{ComplexF64, 2},
@@ -37,6 +74,19 @@ function writederivative!(dpsi::SubArray{ComplexF64, 1},
     dpsi .= (dL*V + L*dV)*psi0
 end
 
+"""
+
+```
+writederivative!(dpsi::SubArray{ComplexF64, 1},
+                 L::Matrix{ComplexF64},
+                 dL::SubArray{ComplexF64, 2},
+                 V::Matrix{ComplexF64}, dV::Matrix{ComplexF64},
+                 psi0::SubArray{ComplexF64, 1},
+                 dpsi0::SubArray{ComplexF64, 1})
+```
+
+TODO: write this documentation
+"""
 function writederivative!(dpsi::SubArray{ComplexF64, 1},
                           L::Matrix{ComplexF64},
                           dL::SubArray{ComplexF64, 2},
@@ -46,6 +96,16 @@ function writederivative!(dpsi::SubArray{ComplexF64, 1},
     dpsi .= (dL*V + L*dV)*psi0 + L*V*dpsi0
 end
 
+"""
+
+```
+derivatives_atjumps(sys::System, Heff_par::Function, Ls_par, traj::Trajectory, psi0::Vector{ComplexF64}, theta::Vector{Float64},
+                            dtheta::Vector{Float64})
+
+```
+
+TODO: write this documentation
+"""
 function derivatives_atjumps(sys::System, Heff_par::Function, Ls_par, traj::Trajectory, psi0::Vector{ComplexF64}, theta::Vector{Float64},
                             dtheta::Vector{Float64})
     # 0. Special Case: if the trajectory is empty, return an empty array
@@ -86,25 +146,46 @@ function derivatives_atjumps(sys::System, Heff_par::Function, Ls_par, traj::Traj
 
 end
 
+"""
+
+```
+writexi!(xi::SubArray{ComplexF64, 2}, dV::Matrix{ComplexF64},
+         psi::SubArray{ComplexF64, 1}, psi0::Vector{ComplexF64})
+```
+
+TODO: write this documentation
+"""
 function writexi!(xi::SubArray{ComplexF64, 2}, dV::Matrix{ComplexF64},
                   psi::SubArray{ComplexF64, 1}, psi0::Vector{ComplexF64})
     xi .= ((dV*psi0).*adjoint(psi)+psi.*adjoint(dV*psi0))/dot(psi, psi)
 end
 
+"""
+
+```
+writexi!(xi::SubArray{ComplexF64, 2}, V::Matrix{ComplexF64}, dV::Matrix{ComplexF64},
+          psijump::SubArray{ComplexF64, 1}, dpsijump::SubArray{ComplexF64, 1},      ```
+         psi::SubArray{ComplexF64, 1})
+TODO: write this documentation
+
+"""
 function writexi!(xi::SubArray{ComplexF64, 2}, V::Matrix{ComplexF64}, dV::Matrix{ComplexF64},
                    psijump::SubArray{ComplexF64, 1}, dpsijump::SubArray{ComplexF64, 1},
-                  psi::SubArray{ComplexF64, 1}
-                  )
+                  psi::SubArray{ComplexF64, 1})
     xi .= ((dV*psijump + V*dpsijump).*adjoint(psi)+psi.*adjoint(dV*psijump + V*dpsijump))/dot(psi, psi)
 end
 
-     # tmp = (expheff_derivative(Heff_par, t_given[counter]-t_, theta, dtheta) * psijumps[:, counter_c-1]+
-                   # exp(-1im*(t_given[counter]-t_)*sys.Heff)*dpsijumps[:, counter_c-1] )
-            # xis[ :, :,counter] = (adjoint(tmp) .* psi[ :, counter] +  adjoint(psi[:, counter]) .* tmp)/dot(psi[:, counter], psi[:, counter])
 
+"""
 
+```
+monitoringoperator(t_given::Vector{Float64},
+    sys::System, Heff_par::Function, Ls_par, traj::Trajectory, psi0::Vector{ComplexF64}, theta::Vector{Float64},
+                            dtheta::Vector{Float64})
+```
 
-
+TODO: write this documentation
+"""
 function monitoringoperator(t_given::Vector{Float64},
     sys::System, Heff_par::Function, Ls_par, traj::Trajectory, psi0::Vector{ComplexF64}, theta::Vector{Float64},
                             dtheta::Vector{Float64})

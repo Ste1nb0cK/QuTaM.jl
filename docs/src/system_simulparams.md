@@ -4,11 +4,11 @@ The two basic parts of any workflow are the structs `System` and `SimulParameter
 The former defines the dynamics and the latter the specifics of the simulation e.g.
 grid precision and number of trajectories.
 
-```@docs; canonical=false
+```@docs
 System
 ```
 
-```@docs; canonical=false
+```@docs
 SimulParameters
 ```
 
@@ -16,13 +16,13 @@ SimulParameters
 Below we give an example using the predefined Pauli matrices available in the package.
 
 ```@example
-using QuTaM
+using BackAction
 
 # Define the system
 deltaomega = 1
 gamma = 1
-H = 0.5*deltaomega * QuTaM.sigma_z # 2-level atom hamiltonian
-L = sqrt(gamma) * QuTaM.sigma_m # Jump operator for Radiative Damping
+H = 0.5*deltaomega * BackAction.sigma_z # 2-level atom hamiltonian
+L = sqrt(gamma) * BackAction.sigma_m # Jump operator for Radiative Damping
 sys = System(H, [L])
 
 psi0 = zeros(ComplexF64, 2)
@@ -47,10 +47,10 @@ print(params, "\n")
 
 To implement the clicks, the struct `DetectionClick` is used.
 
-```@docs; canonical=false
+```@docs 
 DetectionClick
 ```
-```@docs; canonical=false
+```@docs
 Trajectory
 ```
 
