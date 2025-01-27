@@ -10,7 +10,8 @@ makedocs(;
   authors = "Nicolás A. Niño <ninino@unal.edu.co>",
   sitename = "BackAction.jl",
   # Configure output format
-  format = Documenter.HTML(),
+  format = Documenter.HTML(repolink = "..."),
+
   # Define the structure of the site
   pages = [
     "Home" => "index.md",
