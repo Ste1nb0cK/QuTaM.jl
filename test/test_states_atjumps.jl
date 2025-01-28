@@ -1,4 +1,4 @@
-using BackAction, LinearAlgebra, Test
+using  LinearAlgebra, Test
 
 function identifystate(s::Matrix{ComplexF64})
     excited = [[0, 0] [0, 1.0+0im]]

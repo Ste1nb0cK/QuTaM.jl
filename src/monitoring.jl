@@ -4,7 +4,14 @@
 getheff_parametrized(H_par::Function, Ls_par)
 ```
 
-TODO: write this documentation
+From the function `H_par`, which is assumed to be the parametrization of the hamiltonian, and
+an array of functions `Ls` which are assumed to parametrize the jump operators, return a function
+that's the  parametrization of the effective Hamiltonian.
+
+!!! note "About the Arguments"
+    The calculation of monitoring operator assumes that the arguments of `H_par` and the functions in
+    `Ls` are the same and in the same order.
+
 """
 function getheff_parametrized(H_par::Function, Ls_par)::Function
     # here theta is expected to be a vector
@@ -22,7 +29,21 @@ end
 expheff_derivative(Heff_par::Function, tau::Float64, theta::Vector{Float64}, dtheta::Vector{Float64})
 ```
 
-TODO: write this documentation
+Calculate the derivative  ``\\partial_{i}e^{-i\\tau H_e(\\theta)}``, where ``i`` is the ``i-th`` component
+of the vector ``\\theta``.
+
+# Arguments
+- `Heff_par::Function`: the parametrization of the effective hamiltonian
+- `tau::Float64`: the time in the exponential
+- `theta::Vector{Float64}`: vector with the values of the parameters at which the derivative is calculated
+- `dtheta::Vector{Float64}`: the displacement vector used to calculate the derivative, if you want the derivative
+                             respect to the ``i-th`` parameter `dtheta` must have zero entries except for `dtheta[i]`.
+
+!!! note "Derivative order "
+    The derivative is calculate using the five-point stencil rule.
+
+!!! todo "TODO: add an example"
+    Preferably one in which  ``\\partial_i H_e`` commutes with ``H_e``, those are easier.
 """
 function expheff_derivative(Heff_par::Function, tau::Float64, theta::Vector{Float64}, dtheta::Vector{Float64})
     f1 =  exp(-1im*tau*Heff_par((theta + 2*dtheta)...))
@@ -36,12 +57,14 @@ end
 """
 
 ```
-jumpoperators_derivatives(Ls_par, theta, dtheta)
+jumpoperators_derivatives(Ls_par, theta::Vector{Float64}, dtheta::Vector{Float64})
 ```
 
-TODO: write this documentation
+Calculate the derivatives of the list of jump operators, the logic is the same as
+for `expheff_derivative`.
+
 """
-function jumpoperators_derivatives(Ls_par, theta, dtheta)
+function jumpoperators_derivatives(Ls_par, theta::Vector{Float64}, dtheta::Vector{Float64})
     nchannels = size(Ls_par)[1]
     nlevels = size(Ls_par[1](theta...))[1]
     dLs = zeros(ComplexF64, nlevels, nlevels, nchannels)
@@ -55,6 +78,7 @@ function jumpoperators_derivatives(Ls_par, theta, dtheta)
     return dLs
 end
 
+
 """
 
 ```
@@ -64,7 +88,13 @@ writederivative!(dpsi::SubArray{ComplexF64, 1}, L::Matrix{ComplexF64},
                           psi0::Vector{ComplexF64})
 ```
 
-TODO: write this documentation
+Writes the derivative of ``|\\psi\\rangle = L(\\theta)V(\\theta)|\\psi_0\\rangle ``
+at ``\\theta`` in the subarray `dpsi` respect to the ``i-th`` component of ``theta``,
+following the same logic as `expheff_derivative`. The derivatives of ``V`` and ``L`` at
+must be provided via `dL` and `dV`.
+
+!!! note "Initial State dependency"
+    This is intended to be used when ``|\\psi_0\\rangle`` doesn't have dependeny on ``\\theta``.
 """
 function writederivative!(dpsi::SubArray{ComplexF64, 1},
                           L::Matrix{ComplexF64},
@@ -85,7 +115,12 @@ writederivative!(dpsi::SubArray{ComplexF64, 1},
                  dpsi0::SubArray{ComplexF64, 1})
 ```
 
-TODO: write this documentation
+Writes the derivative of ``|\\psi\\rangle = L(\\theta)V(\\theta)|\\psi_0\\rangle ``
+at ``\\theta`` in the subarray `dpsi` respect to the ``i-th`` component of ``theta``,
+following the same logic as `expheff_derivative`. The derivatives of ``V`` and ``L`` at
+must be provided via `dL` and `dV`, and also that of ``|\\psi0\\rangle`` as `dpsi0`.
+
+
 """
 function writederivative!(dpsi::SubArray{ComplexF64, 1},
                           L::Matrix{ComplexF64},

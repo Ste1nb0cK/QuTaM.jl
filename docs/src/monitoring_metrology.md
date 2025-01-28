@@ -17,7 +17,7 @@ BackAction.expheff_derivative(Heff_par::Function, tau::Float64, theta::Vector{Fl
 ```
 
 ```@docs
-BackAction.jumpoperators_derivatives(Ls_par, theta, dtheta)
+BackAction.jumpoperators_derivatives(Ls_par, theta::Vector{Float64}, dtheta::Vector{Float64})
 ```
 
 ```@docs

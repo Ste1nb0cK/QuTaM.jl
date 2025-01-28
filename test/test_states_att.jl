@@ -1,4 +1,4 @@
-using BackAction, LinearAlgebra, Test
+using  LinearAlgebra, Test
 function identifystate(s::Vector{ComplexF64})
     s1 = [1.0+0im, 0]
     s2 = [0, 1.0+0im]

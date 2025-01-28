@@ -1,6 +1,6 @@
 # This visual test is intended to test the evolution of mixed states
 # # Import all the necessary libraries
-libraries = ["BackAction", "LinearAlgebra", "Statistics", "Plots", "LaTeXStrings", "OrdinaryDiffEq", "Test"]
+libraries = ["LinearAlgebra", "Statistics", "Plots", "LaTeXStrings", "OrdinaryDiffEq", "Test"]
 
 function ensure_imports(packages::Vector{String})
     for pkg in packages
