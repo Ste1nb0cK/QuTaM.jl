@@ -60,8 +60,16 @@ end
 jumpoperators_derivatives(Ls_par, theta::Vector{Float64}, dtheta::Vector{Float64})
 ```
 
-Calculate the derivatives of the list of jump operators, the logic is the same as
-for `expheff_derivative`.
+Calculate the derivatives of the list of jump operators.
+
+# Arguments
+- `Ls_par`: array with the functions that represent the parametrization of the jump operators
+- `theta::Vector{Float64}`: vector with the values of the parameters at which the derivative is calculated
+- `dtheta::Vector{Float64}`: the displacement vector used to calculate the derivative, if you want the derivative
+                             respect to the ``i-th`` parameter `dtheta` must have zero entries except for `dtheta[i]`.
+
+!!! note "Derivative order"
+    The derivative is calculate using the five-point stencil rule.
 
 """
 function jumpoperators_derivatives(Ls_par, theta::Vector{Float64}, dtheta::Vector{Float64})
@@ -118,7 +126,7 @@ writederivative!(dpsi::SubArray{ComplexF64, 1},
 Writes the derivative of ``|\\psi\\rangle = L(\\theta)V(\\theta)|\\psi_0\\rangle ``
 at ``\\theta`` in the subarray `dpsi` respect to the ``i-th`` component of ``theta``,
 following the same logic as `expheff_derivative`. The derivatives of ``V`` and ``L`` at
-must be provided via `dL` and `dV`, and also that of ``|\\psi0\\rangle`` as `dpsi0`.
+must be provided via `dL` and `dV`, and also that of ``|\\psi(0)\\rangle`` as `dpsi0`.
 
 
 """
@@ -139,7 +147,21 @@ derivatives_atjumps(sys::System, Heff_par::Function, Ls_par, traj::Trajectory, p
 
 ```
 
-TODO: write this documentation
+Given a trajectory `traj` calculate all the ``\\partial_i|\\psi_n(\\theta)\\rangle`` where ``|\\psi_n(\\theta)\\rangle``
+is the state just after the ``n-th`` jump in the trajectory. They are returned as an array of dimensions
+`(size(psi0)[1], size(traj))` so to access the derivative at the ``k-th`` jump you would do
+`derivatives_atjumps(sys, Heff_par, Ls_par, traj, psi0, theta, dtheta)[:, k]`.
+
+# Arguments
+- `sys::System`: the function to which the trajectory corresponds
+- `Heff_par::Function`: the function that gives the parametrization of the effective hamiltonian
+- `Ls_par`: the array with the functions that give the parametrizatio of the jump operators
+- `theta::Vector{Float64}`: vector with the values of the parameters at which the derivative is calculated
+- `dtheta::Vector{Float64}`: the displacement vector used to calculate the derivative, if you want the derivative
+                             respect to the ``i-th`` parameter `dtheta` must have zero entries except for `dtheta[i]`.
+
+!!! note "Derivative order "
+    The derivative is calculate using the five-point stencil rule.
 """
 function derivatives_atjumps(sys::System, Heff_par::Function, Ls_par, traj::Trajectory, psi0::Vector{ComplexF64}, theta::Vector{Float64},
                             dtheta::Vector{Float64})
@@ -187,8 +209,9 @@ end
 writexi!(xi::SubArray{ComplexF64, 2}, dV::Matrix{ComplexF64},
          psi::SubArray{ComplexF64, 1}, psi0::Vector{ComplexF64})
 ```
-
-TODO: write this documentation
+Calculate the monitoring operator when ``|\\psi(\\theta)\\rangle = V|\\psi_0\\rangle`` and ``|\\psi_0\\rangle`` doesn't
+depend on ``\\theta``, and write it at the `SubArray` `xi`. This is, calculate
+``d|\\psi(\\theta)\\rangle = dV|\\psi_0\\rangle``.
 """
 function writexi!(xi::SubArray{ComplexF64, 2}, dV::Matrix{ComplexF64},
                   psi::SubArray{ComplexF64, 1}, psi0::Vector{ComplexF64})
@@ -199,10 +222,13 @@ end
 
 ```
 writexi!(xi::SubArray{ComplexF64, 2}, V::Matrix{ComplexF64}, dV::Matrix{ComplexF64},
-          psijump::SubArray{ComplexF64, 1}, dpsijump::SubArray{ComplexF64, 1},      ```
+          psijump::SubArray{ComplexF64, 1}, dpsijump::SubArray{ComplexF64, 1},
          psi::SubArray{ComplexF64, 1})
-TODO: write this documentation
+```
 
+Calculate the monitoring operator when ``|\\psi(\\theta)\\rangle = V|\\psi_N\\rangle`` and ``|\\psi_N\\rangle`` is
+a state that depends on ``\\theta``, the result is written at the `SubArray` `xi`. This is, calculate
+``d|\\psi(\\theta)\\rangle = dV|\\psi_N\\rangle + Vd|\\psi_N\\rangle ``.
 """
 function writexi!(xi::SubArray{ComplexF64, 2}, V::Matrix{ComplexF64}, dV::Matrix{ComplexF64},
                    psijump::SubArray{ComplexF64, 1}, dpsijump::SubArray{ComplexF64, 1},
@@ -218,8 +244,10 @@ monitoringoperator(t_given::Vector{Float64},
     sys::System, Heff_par::Function, Ls_par, traj::Trajectory, psi0::Vector{ComplexF64}, theta::Vector{Float64},
                             dtheta::Vector{Float64})
 ```
-
-TODO: write this documentation
+Given a trajectory `traj` and an initial state ``|\\psi_0\\rangle``, calculate the monitoring state at the
+times in `t_given`. The result is returned in an array of dimensions `(sys.NLEVELS, sys.NLEVELS, size(t_given)[1])`,
+so to access it at the time `t` you would do
+`monitoringoperator(t_given, sys, Heff_par, Ls_par, traj, psi0, theta, dtheta)[:, :, t]`.
 """
 function monitoringoperator(t_given::Vector{Float64},
     sys::System, Heff_par::Function, Ls_par, traj::Trajectory, psi0::Vector{ComplexF64}, theta::Vector{Float64},
