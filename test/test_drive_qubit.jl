@@ -1,24 +1,6 @@
-# This visual test is intended to test the evolution of mixed states
-# # Import all the necessary libraries
-libraries = ["LinearAlgebra", "Statistics", "Plots", "LaTeXStrings", "OrdinaryDiffEq", "Test"]
+using LinearAlgebra
+using OrdinaryDiffEq
 
-function ensure_imports(packages::Vector{String})
-    for pkg in packages
-        try
-            @eval using $(Symbol(pkg))
-        catch e
-            if e isa ArgumentError && occursin(pkg, e.msg)
-                println("Installing $pkg...")
-                Pkg.add(pkg)
-                @eval using $(Symbol(pkg))
-            else
-                rethrow(e)
-            end
-        end
-    end
-end
-
-ensure_imports(libraries)
 ########################## INITIALIZATION
 # Define the hamiltonian
 delta = 1.43
@@ -96,12 +78,3 @@ r_avg = dropdims(mean(r_sample, dims=3), dims=3);
         @test abs(sol[k][3] - r_avg[k, 3]) < 0.05
     end
 end
-################ PLOTS
-# Analytical
-# plot(sol, idxs =(0, 1), seriescolor="black", label="Lindblad",  line=:dash)
-# plot!(sol, idxs =(0, 2), seriescolor="black", label=:false,  line=:dash)
-# plot!(sol, idxs =(0, 3), seriescolor="black", label=:false,  line=:dash)
-# Trajectory Average
-# plot!(t_given, r_avg[:, 1],  label=L"\sigma_x" , seriescolor=:red)
-# plot!(t_given, r_avg[:, 2],  label=L"\sigma_y" , seriescolor=:green)
-# plot!(t_given, r_avg[:, 3],  label=L"\sigma_z" , seriescolor=:blue)

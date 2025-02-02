@@ -1,6 +1,4 @@
-using  LinearAlgebra, Test
-
-function identifystate(s::Matrix{ComplexF64})
+function identifystate_jump(s::Matrix{ComplexF64})
     excited = [[0, 0] [0, 1.0+0im]]
     ground = [[1.0+0im, 0] [0, 0]]
     if norm(ground-s) < 0.01
@@ -12,7 +10,7 @@ function identifystate(s::Matrix{ComplexF64})
     end
 end
 
-function identifystate(s::Vector{ComplexF64})
+function identifystate_jump(s::Vector{ComplexF64})
     s1 = [1.0+0im, 0]
     s2 = [0, 1.0+0im]
     if norm(s1-s) < 0.01
@@ -36,7 +34,7 @@ end
         states = BackAction.states_atjumps(traj, sys, params.psi0)
         counter = 1
         for click in traj
-            @test identifystate(states[:, counter]) == click.label
+            @test identifystate_jump(states[:, counter]) == click.label
             counter = counter + 1
         end
     end
@@ -68,7 +66,7 @@ end
         states = BackAction.states_atjumps(traj, sys, params.psi0)
         counter = 1
         for click in traj
-            @test identifystate(states[:,:, counter]) == click.label
+            @test identifystate_jump(states[:,:, counter]) == click.label
             counter = counter + 1
         end
     end

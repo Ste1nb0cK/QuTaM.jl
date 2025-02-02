@@ -1,6 +1,6 @@
 import HypothesisTests, Distributions
-using  LinearAlgebra, Statistics, Random, QuadGK, Test, Plots,
-    OrdinaryDiffEq
+using  LinearAlgebra, Statistics, Random, QuadGK, Test
+using OrdinaryDiffEq
 ########## Setup
 sys = BackAction.rf_sys
 params = BackAction.rf_params
@@ -104,8 +104,8 @@ rf_p0WTD = 0.2 # Minimal pvalue for accepting the null hypothesis
 end
 
 ################# Visual test of the WTD #############
-hist = histogram(tau_sample, normalize=:pdf, label="Sample")
-plot!(t_given, Distributions.pdf.(f, t_given), label="Analytical")
+# hist = histogram(tau_sample, normalize=:pdf, label="Sample")
+# plot!(t_given, Distributions.pdf.(f, t_given), label="Analytical")
 ################ Visual test of the observables
 # System of equations for RF (Source: Wiseman section 3.3.1)
 function rf_de!(dr, r, p, t)
@@ -121,22 +121,22 @@ end
 prob = ODEProblem(rf_de!, r0, tspan)
 sol = solve(prob, reltol = 1e-6, saveat = t_given);
 
-using LaTeXStrings
+# using LaTeXStrings
 
-p1 = plot(t_given, r_avg[:, 1], label="Unraveling", title=L"\sigma_x", seriescolor=:blue)
-plot!(t_given, r_sample[:,1, 1], label="Sample Trajectory", seriescolor=:green)
-plot!(sol, idxs =(0, 1), label="Lindblad", seriescolor=:red)
+# p1 = plot(t_given, r_avg[:, 1], label="Unraveling", title=L"\sigma_x", seriescolor=:blue)
+# plot!(t_given, r_sample[:,1, 1], label="Sample Trajectory", seriescolor=:green)
+# plot!(sol, idxs =(0, 1), label="Lindblad", seriescolor=:red)
 
-p2 = plot(t_given, r_avg[:, 2], title=L"\sigma_y", seriescolor=:blue)
-plot!(t_given, r_sample[:,2, 1], seriescolor=:green)
-plot!(sol, idxs =(0, 2),  legend=false,  seriescolor=:red)
+# p2 = plot(t_given, r_avg[:, 2], title=L"\sigma_y", seriescolor=:blue)
+# plot!(t_given, r_sample[:,2, 1], seriescolor=:green)
+# plot!(sol, idxs =(0, 2),  legend=false,  seriescolor=:red)
 
-p3 = plot(t_given, r_avg[:, 3], title=L"\sigma_z", seriescolor=:blue)
-plot!(t_given, r_sample[:,3, 1],  seriescolor=:green)
-plot!(sol, idxs =(0, 3), legend=false, seriescolor=:red)
+# p3 = plot(t_given, r_avg[:, 3], title=L"\sigma_z", seriescolor=:blue)
+# plot!(t_given, r_sample[:,3, 1],  seriescolor=:green)
+# plot!(sol, idxs =(0, 3), legend=false, seriescolor=:red)
 
-l = @layout [
-    a{0.5w} grid(3,1)
-]
+# l = @layout [
+#     a{0.5w} grid(3,1)
+# ]
 
-plot(hist, p1, p2,p3,  layout=l)
+# plot(hist, p1, p2,p3,  layout=l)

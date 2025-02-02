@@ -1,9 +1,4 @@
-import Distributions, HypothesisTests
-using Test
 # using BackAction
-using Statistics
-using LinearAlgebra
-using Plots
 @testset verbose=true "Radiative Damping: Basic Operators" begin
        @test norm(BackAction.rd_sys.H - BackAction.rd_H) < BackAction.rd_EPS
        @test norm(BackAction.rd_sys.Ls[1]- BackAction.rd_L) < BackAction.rd_EPS
@@ -116,8 +111,3 @@ end
 @testset "Radiative Damping: Fisher Information in Time" begin
     @test error_global < accepted_error
 end
-########### PLOTS
-# In case you want to see them, you can show the plots of the FI as function of time
-# Plot against analytical result
-# plot(t_given, f_analytical.(t_given), label="Analytical", color="black", linewidth=3.3)
-# scatter!(t_given, fi, label="simulation", color="blue")
