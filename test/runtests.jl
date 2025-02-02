@@ -1,10 +1,12 @@
 using BackAction
 using Test
 using LinearAlgebra
+using QuadGK
 using ProgressMeter
-# using OrdinaryDiffEq
 using Statistics
-import Distributions, HypothesisTests
+using Random
+using Distributions
+using HypothesisTests
 @testset "Radiative Damping" begin
     include("test_radiative_damping.jl")
 end
@@ -18,14 +20,14 @@ end
 end
 
 
-# @testset "Resonance Fluorescene" begin
-#     include("test_resonance_fluorescene.jl")
-# end
+@testset "Resonance Fluorescene" begin
+    include("test_resonance_fluorescene.jl")
+end
 
-# @testset "Driven Qubit" begin
-#     include("test_drive_qubit.jl")
-# end
+@testset "Driven Qubit" begin
+    include("test_drive_qubit.jl")
+end
 
-# @testset "Monitoring Operator" begin
-#     include("test_monitoring.jl")
-# end
+@testset "Monitoring Operator" begin
+    include("test_monitoring.jl")
+end

@@ -1,6 +1,3 @@
-using LinearAlgebra
-using OrdinaryDiffEq
-
 ########################## INITIALIZATION
 # Define the hamiltonian
 delta = 1.43
@@ -28,10 +25,10 @@ params = SimulParameters(psi0,
 )
 ################## Differential Equation of the Observables
 
-function rf_de!(dr, r, p, t)
-    dr[1] = -0.5*gamma*(2*nbar+1)*r[1] - delta*r[2]
-    dr[2] = delta*r[1] - 0.5*gamma*(2*nbar+1)*r[2] - omega*r[3]
-    dr[3] = omega*r[2] - gamma*(2*nbar+1)*r[3] - gamma
+function f_drivenqubit(t, r)
+     [-0.5*gamma*(2*nbar+1)*r[1] - delta*r[2];
+     delta*r[1] - 0.5*gamma*(2*nbar+1)*r[2] - omega*r[3];
+     omega*r[2] - gamma*(2*nbar+1)*r[3] - gamma]
 end
 
 # Trajectory Sampling
@@ -39,20 +36,17 @@ sampled_trajectories = run_trajectories(sys, params);
 
 # Lindblad Evolution of Observables
 sigma = [BackAction.sigma_x, BackAction.sigma_y, BackAction.sigma_z]
-x0 = real
 r0 = zeros(Float64, 3)
 for k in 1:3
     r0[k] = real(tr(sigma[k]*psi0))
 end
 tspan = (0.0, params.tf)
-t_given = collect(LinRange(0, params.tf, 1000));
+ntimes = 1000
+t_given = collect(LinRange(0, params.tf, ntimes));
 
 # Analytical Solution
-prob = ODEProblem(rf_de!, r0, tspan)
-sol = solve(prob, reltol = 1e-6, saveat = t_given);
 
 # Obtain the states between jumps
-ntimes = size(t_given)[1]
 sample = zeros(ComplexF64, sys.NLEVELS, sys.NLEVELS, ntimes, params.ntraj)
 for n in 1:params.ntraj
     sample[:, :, :, n]  = BackAction.states_att(t_given, sampled_trajectories[n], sys,  params.psi0)
@@ -71,10 +65,12 @@ end
 end
 # Average
 r_avg = dropdims(mean(r_sample, dims=3), dims=3);
+
+r_analytical = BackAction.rk4(f_drivenqubit, r0, tspan, ntimes)
 @testset "Driven Qubit: Expectation Value Convergence" begin
     for k in 1:ntimes
-        @test abs(sol[k][1] - r_avg[k, 1]) < 0.05
-        @test abs(sol[k][2] - r_avg[k, 2]) < 0.05
-        @test abs(sol[k][3] - r_avg[k, 3]) < 0.05
+        @test abs( r_analytical[1, k]- r_avg[k, 1]) < 0.05
+        @test abs( r_analytical[2, k]- r_avg[k, 2]) < 0.05
+        @test abs( r_analytical[3, k]- r_avg[k, 3]) < 0.05
     end
 end

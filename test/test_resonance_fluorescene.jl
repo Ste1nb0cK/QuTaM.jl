@@ -1,33 +1,28 @@
-import HypothesisTests, Distributions
-using  LinearAlgebra, Statistics, Random, QuadGK, Test
-using OrdinaryDiffEq
 ########## Setup
 sys = BackAction.rf_sys
 params = BackAction.rf_params
 r0 = [0.0; 0.0; -1.0] # Initial Condition
 tspan = (0.0, params.tf)
-t_given = collect(LinRange(0, params.tf, 1000));
+ntimes = 1000
+t_given = collect(LinRange(0, params.tf, ntimes));
 
 ################## Average Simulation ################3
 # Generate a set of trajectories and states
-println("Sampling clicks\n")
 @time begin
-    sample_clicks = BackAction.run_trajectories(sys, params; isrenewal=true)
+    trajectories = BackAction.run_trajectories(sys, params)
 end
 ntimes = size(t_given)[1]
 sample = zeros(ComplexF64,  sys.NLEVELS, ntimes, params.ntraj) # states
 
-println("Obtaining states between jumps\n")
 @time begin
     for n in 1:params.ntraj
-        states = BackAction.states_att(t_given, sample_clicks[n], sys,  params.psi0)
+        states = BackAction.states_att(t_given, trajectories[n], sys,  params.psi0)
                 sample[:, :, n] = states[:, :]
     end
 end
 # Obtain the value of the observables
 r_sample = zeros(Float64, ntimes, 3, params.ntraj)
 sigma = [BackAction.sigma_x, BackAction.sigma_y, BackAction.sigma_z]
-println("Calculating expectation of observables\n")
 
 @time begin
     for j in 1:params.ntraj
@@ -42,7 +37,7 @@ r_avg = dropdims(mean(r_sample, dims=3), dims=3) # Ensemble average
 
 # Exploiting that this is a renewal process, obtain a sample of waiting times
 tau_sample = Vector{Float64}()
-for traj in sample_clicks
+for traj in trajectories
     if !isempty(traj)
         for click in traj
             push!(tau_sample, click.time)
@@ -88,55 +83,36 @@ function Base.rand(rng::AbstractRNG, d::WTD_rf)
 end
 
 f = WTD_rf(BackAction.rf_gamma, BackAction.rf_omega) # Instance of the WTD
-println("Sampling from the analytical WTD\n")
 @time begin
     f_sample = rand(f, 500) # Sample from the WTD
 end
 # Run a KS test
-println("Runnign KS test\n")
 @time begin
-    pvalue = HypothesisTests.pvalue(HypothesisTests.ApproximateTwoSampleKSTest(tau_sample, f_sample))
+    ksresults = ApproximateTwoSampleKSTest(tau_sample, f_sample)
+    p = pvalue(ksresults) #pvalue
 end
 rf_p0WTD = 0.2 # Minimal pvalue for accepting the null hypothesis
 
 @testset verbose=true "WTD" begin
-    @test pvalue > rf_p0WTD
+    @test p > rf_p0WTD
 end
 
-################# Visual test of the WTD #############
-# hist = histogram(tau_sample, normalize=:pdf, label="Sample")
-# plot!(t_given, Distributions.pdf.(f, t_given), label="Analytical")
-################ Visual test of the observables
 # System of equations for RF (Source: Wiseman section 3.3.1)
-function rf_de!(dr, r, p, t)
+function f_resonancefluorescene(t, r)
     gamma = BackAction.rf_gamma
     delta = BackAction.rf_delta
     omega = BackAction.rf_omega
-    dr[1] = -0.5*gamma*r[1] - 2*delta*r[2]
-    dr[2] = 2*delta*r[1] - 0.5*gamma*r[2] - 2*omega*r[3]
-    dr[3] = 2*omega*r[2] - gamma*(r[3] + 1)
+    return [-0.5*gamma*r[1] - 2*delta*r[2]; 2*delta*r[1] - 0.5*gamma*r[2] - 2*omega*r[3];
+            2*omega*r[2] - gamma*(r[3] + 1)]
 end
 
 # Solution to the unconditional equation
-prob = ODEProblem(rf_de!, r0, tspan)
-sol = solve(prob, reltol = 1e-6, saveat = t_given);
+r_analytical = BackAction.rk4(f_resonancefluorescene, r0, tspan, ntimes)
 
-# using LaTeXStrings
-
-# p1 = plot(t_given, r_avg[:, 1], label="Unraveling", title=L"\sigma_x", seriescolor=:blue)
-# plot!(t_given, r_sample[:,1, 1], label="Sample Trajectory", seriescolor=:green)
-# plot!(sol, idxs =(0, 1), label="Lindblad", seriescolor=:red)
-
-# p2 = plot(t_given, r_avg[:, 2], title=L"\sigma_y", seriescolor=:blue)
-# plot!(t_given, r_sample[:,2, 1], seriescolor=:green)
-# plot!(sol, idxs =(0, 2),  legend=false,  seriescolor=:red)
-
-# p3 = plot(t_given, r_avg[:, 3], title=L"\sigma_z", seriescolor=:blue)
-# plot!(t_given, r_sample[:,3, 1],  seriescolor=:green)
-# plot!(sol, idxs =(0, 3), legend=false, seriescolor=:red)
-
-# l = @layout [
-#     a{0.5w} grid(3,1)
-# ]
-
-# plot(hist, p1, p2,p3,  layout=l)
+@testset "Resonance Fluorescene: Expectation Value Convergence" begin
+    for k in 1:ntimes
+        @test abs(r_analytical[1, k] - r_avg[k, 1]) < 0.1
+        @test abs(r_analytical[2, k] - r_avg[k, 2]) < 0.1
+        @test abs(r_analytical[3, k] - r_avg[k, 3]) < 0.1
+    end
+end
