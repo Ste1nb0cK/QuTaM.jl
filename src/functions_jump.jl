@@ -203,7 +203,21 @@ function postjumpupdate!(L::Matrix{ComplexF64}, psi::Matrix{ComplexF64}; normali
         end
 end
 
+function gillipsiestep!(sys::System, params::SimulParameters, W::Vector{Float64},
+                        P::Vector{Float64}, Vs::Array{ComplexF64}, ts::Vector{Float64},
+                        t::Float64, psi::Vector{ComplexF64}, traj::Trajectory )
+      #Sample jump time and  move state to pre-jump state
+        tau_index = StatsBase.sample(1:params.nsamples, StatsBase.weights(W))
+        t = ts[tau_index] + t
+        prejumpupdate!(Vs[:, :, tau_index], psi)
+        # Sample jump channel
+        calculatechannelweights!(P, psi, sys)
+        channel = StatsBase.sample(1:sys.NCHANNELS, StatsBase.weights(P))
+        # State update
+        postjumpupdate!(sys.Ls[channel], psi)
+        push!(traj, DetectionClick(ts[tau_index], channel))
 
+end
 ############# Single Trajectory Routine ######################
 """
 ```
@@ -245,17 +259,8 @@ function run_singletrajectory(sys::System, params::SimulParameters,
     # Run the trajectory
     calculatewtdweights!(W, Qs, psi, params)
     while t < params.tf
-        #Sample jump time and  move state to pre-jump state
-        tau_index = StatsBase.sample(1:params.nsamples, StatsBase.weights(W))
-        t = ts[tau_index] + t
-        prejumpupdate!(Vs[:, :, tau_index], psi)
-        # Sample jump channel
-        calculatechannelweights!(P, psi, sys)
-        channel = StatsBase.sample(1:sys.NCHANNELS, StatsBase.weights(P))
-        # State update
-        postjumpupdate!(sys.Ls[channel], psi)
-        push!(traj, DetectionClick(ts[tau_index], channel))
-        # Sample WTD
+        gillipsiestep!(sys, params, W, P, Vs, ts, t, psi, traj)
+        # reSample WTD
         if !isrenewal
             calculatewtdweights!(W, Qs, psi, params)
             if sum(W) < params.eps
