@@ -18,7 +18,7 @@ function run_trajectories(sys::System, params::SimulParameters; progbar::Bool = 
             data[k] = run_singletrajectory(sys, params,
                                            W[:, isrenewal ? 1 : tid],
                                            P[:, tid],
-                        ts, Qs, Vs; seed = params.seed + k, isrenewal=isrenewal)
+                        ts, Qs, Vs; seed = params.seed + k)
             next!(p)
             end
     finish!(p)

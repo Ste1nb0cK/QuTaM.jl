@@ -8,10 +8,21 @@
 
 ########### WTD ######################################
 # Data generation
+sys = BackAction.rd_sys
+params = SimulParameters(BackAction.rd_psi0,
+                             3.0, # Final time. Set very long so that all trajectories jump
+                             1, # seed
+                             10_000, # Number of trajectories
+                             50_000, # Number of samples in the finegrid
+                             10.5, # Multiplier to use in the fine grid
+                             1e-3 # Tolerance for passing Dark state test
+                             )
+
+
 @time begin
-rd_data = run_trajectories(BackAction.rd_sys, BackAction.rd_params)
+trajectories = run_trajectories(sys, params)
 end
-rd_times = [rd_data[k][1].time for k in 1:BackAction.rd_params.ntraj if !isempty(rd_data[k])]
+rd_times = [trajectories[k][1].time for k in 1:BackAction.rd_params.ntraj if !isempty(trajectories[k])]
 rd_d = Distributions.Exponential(1/BackAction.rd_gamma)
 ## Use a two sample Kolmogorov-Smirnov test, pvalue above 0.2 is accepted
 rd_pvalue = HypothesisTests.pvalue(
@@ -24,15 +35,13 @@ HypothesisTests.ApproximateTwoSampleKSTest(rd_times, rand(rd_d, BackAction.rd_pa
   @test abs(fit_par - 1/BackAction.rd_gamma) < 0.01
 end
 
-sys = BackAction.rd_sys
-params = BackAction.rd_params
 # Now from each trajectory, generate the states at the given times
-sample_clicks = BackAction.run_trajectories(sys, params)
+# trajectories = BackAction.run_trajectories(sys, params)
 ntimes = 1000
 t = collect(LinRange(0, params.tf, ntimes))
 sample = Array{ComplexF64}(undef, sys.NLEVELS, ntimes, params.ntraj);
 for n in 1:params.ntraj
-    sample[:, :, n] = BackAction.states_att(t, sample_clicks[n], sys,  params.psi0)
+    sample[:, :, n] = BackAction.states_att(t, trajectories[n], sys,  params.psi0)
 end
 # Check that all states are normalized
 global local_flag = true
@@ -62,50 +71,40 @@ error = sum(abs.( (x - x_theo) ./ x_theo)) / (sum(abs.(x_theo)))
 end
 
 ######## Test the Fisher Information
-    sys = BackAction.rd_sys
-    params = SimulParameters(BackAction.rd_psi0,
-                             3.0, # Final time. Set very long so that all trajectories jump
-                             1, # seed
-                             10_000, # Number of trajectories
-                             50_000, # Number of samples in the finegrid
-                             10.5, # Multiplier to use in the fine grid
-                             1e-3 # Tolerance for passing Dark state test
-                             )
+# trajectories = run_trajectories(sys, params);
+# Parametrization stuff
+H_parametrized = (delta::Float64, gamma::Float64) -> (0.5*delta*BackAction.sigma_z)::Matrix{ComplexF64}
+L_parametrized = (delta::Float64, gamma::Float64) -> (sqrt(gamma)*BackAction.sigma_m)::Matrix{ComplexF64}
+Heff_parametrized = BackAction.getheff_parametrized(H_parametrized, [L_parametrized])
 
-    trajectories = run_trajectories(sys, params);
-    # Parametrization stuff
-    H_parametrized = (delta::Float64, gamma::Float64) -> (0.5*delta*BackAction.sigma_z)::Matrix{ComplexF64}
-    L_parametrized = (delta::Float64, gamma::Float64) -> (sqrt(gamma)*BackAction.sigma_m)::Matrix{ComplexF64}
-    Heff_parametrized = BackAction.getheff_parametrized(H_parametrized, [L_parametrized])
+ntimes = 100
+t_given = collect(LinRange(0, params.tf, ntimes));
 
-    ntimes = 100
-    t_given = collect(LinRange(0, params.tf, ntimes));
+# Obtain Monitoring Operator
+xi_sample = Array{ComplexF64}(undef, sys.NLEVELS, sys.NLEVELS, ntimes, params.ntraj)
+for n in 1:params.ntraj
+    xi_sample[:, :, :, n] = monitoringoperator(t_given, sys, Heff_parametrized, [L_parametrized], trajectories[n], params.psi0,
+                                               [BackAction.rd_deltaomega, BackAction.rd_gamma], [0.0, BackAction.rd_gamma/100])
+end
 
-    # Obtain Monitoring Operator
-    xi_sample = Array{ComplexF64}(undef, sys.NLEVELS, sys.NLEVELS, ntimes, params.ntraj)
-    for n in 1:params.ntraj
-        xi_sample[:, :, :, n] = monitoringoperator(t_given, sys, Heff_parametrized, [L_parametrized], trajectories[n], params.psi0,
-                                                   [BackAction.rd_deltaomega, BackAction.rd_gamma], [0.0, BackAction.rd_gamma/100])
+# Calculate the sample Fisher Information
+fi_sample = Array{Float64}(undef, ntimes, params.ntraj)
+for n in 1:params.ntraj
+    for k in 1:ntimes
+        fi_sample[k, n] = real(tr(xi_sample[:, :, k, n]))^2
     end
+end
+# Fisher Information Average
+fi = dropdims(mean(fi_sample, dims=2), dims=2);
 
-    # Calculate the sample Fisher Information
-    fi_sample = Array{Float64}(undef, ntimes, params.ntraj)
-    for n in 1:params.ntraj
-        for k in 1:ntimes
-            fi_sample[k, n] = real(tr(xi_sample[:, :, k, n]))^2
-        end
-    end
-    # Fisher Information Average
-    fi = dropdims(mean(fi_sample, dims=2), dims=2);
+# Check global error against analytical result
+f_analytical(t) = (1-exp(-BackAction.rd_gamma*t))/(BackAction.rd_gamma^2)
+fi_theo = f_analytical.(t_given)
 
-    # Check global error against analytical result
-    f_analytical(t) = (1-exp(-BackAction.rd_gamma*t))/(BackAction.rd_gamma^2)
-    fi_theo = f_analytical.(t_given)
-
-    fi_min, fi_max = extrema(fi_theo)
-    # Use as error measure the normalized MSRE
-    accepted_error = 0.1
-    error_global = sqrt( mean((fi_theo - fi).^2 )) /(fi_max - fi_min)
+fi_min, fi_max = extrema(fi_theo)
+# Use as error measure the normalized MSRE
+accepted_error = 0.1
+error_global = sqrt( mean((fi_theo - fi).^2 )) /(fi_max - fi_min)
 
 
 @testset "Radiative Damping: Fisher Information in Time" begin
