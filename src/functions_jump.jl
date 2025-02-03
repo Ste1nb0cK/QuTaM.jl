@@ -302,7 +302,7 @@ function gillipsiestep_returntau!(sys::System, params::SimulParameters, W::Vecto
     tau_index = sampletauindex!(W, Qs, psi, params)
     # in case the last index was at the last index, return already to avoid errors with dark states
     if tau_index == params.nsamples
-        # push!(traj, DetectionClick(tau, channel))
+        # push!(traj, DetectionClick(ts[tau_index], channel))
         return tau_index
     end
     prejumpupdate!(Vs[:, :, tau_index], psi)

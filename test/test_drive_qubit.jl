@@ -34,40 +34,38 @@ end
 # Trajectory Sampling
 sampled_trajectories = run_trajectories(sys, params);
 
-# Lindblad Evolution of Observables
-sigma = [BackAction.sigma_x, BackAction.sigma_y, BackAction.sigma_z]
-r0 = zeros(Float64, 3)
-for k in 1:3
-    r0[k] = real(tr(sigma[k]*psi0))
-end
-tspan = (0.0, params.tf)
-ntimes = 1000
-t_given = collect(LinRange(0, params.tf, ntimes));
-
-# Analytical Solution
-
-# Obtain the states between jumps
-sample = zeros(ComplexF64, sys.NLEVELS, sys.NLEVELS, ntimes, params.ntraj)
-for n in 1:params.ntraj
-    sample[:, :, :, n]  = BackAction.states_att(t_given, sampled_trajectories[n], sys,  params.psi0)
-end
-# Evaluate the observables
-r_sample = zeros(Float64, ntimes, 3, params.ntraj)
-
-@time begin
-for j in 1:params.ntraj
+@testset "Driven Qubit: Expectation Value Convergence" begin
+    # Lindblad Evolution of Observables
+    sigma = [BackAction.sigma_x, BackAction.sigma_y, BackAction.sigma_z]
+    r0 = zeros(Float64, 3)
     for k in 1:3
-        for tn in 1:ntimes
+        r0[k] = real(tr(sigma[k]*psi0))
+    end
+    tspan = (0.0, params.tf)
+    ntimes = 1000
+    t_given = collect(LinRange(0, params.tf, ntimes));
+
+    # Analytical Solution
+
+    # Obtain the states between jumps
+    sample = zeros(ComplexF64, sys.NLEVELS, sys.NLEVELS, ntimes, params.ntraj)
+    for n in 1:params.ntraj
+        sample[:, :, :, n]  = BackAction.states_att(t_given, sampled_trajectories[n], sys,  params.psi0)
+    end
+    # Evaluate the observables
+    r_sample = zeros(Float64, ntimes, 3, params.ntraj)
+
+    for j in 1:params.ntraj
+        for k in 1:3
+            for tn in 1:ntimes
                 r_sample[tn, k, j] = real( tr(sigma[k] * sample[:, :, tn, j]) )
+            end
         end
     end
-end
-end
-# Average
-r_avg = dropdims(mean(r_sample, dims=3), dims=3);
+    # Average
+    r_avg = dropdims(mean(r_sample, dims=3), dims=3);
 
-r_analytical = BackAction.rk4(f_drivenqubit, r0, tspan, ntimes)
-@testset "Driven Qubit: Expectation Value Convergence" begin
+    r_analytical = BackAction.rk4(f_drivenqubit, r0, tspan, ntimes)
     for k in 1:ntimes
         @test abs( r_analytical[1, k]- r_avg[k, 1]) < 0.05
         @test abs( r_analytical[2, k]- r_avg[k, 2]) < 0.05
