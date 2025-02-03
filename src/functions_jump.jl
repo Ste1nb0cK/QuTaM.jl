@@ -206,19 +206,68 @@ end
 """
 
 ```
+samplejumptime!(W::Vector{Float64}, Qs::Array{ComplexF64}, psi::VecOrMat{ComplexF64})
+```
+
+Sample a jump time index from the state `psi` (pure or mixed), modfying `W` to write on it.
+The technique is inversion sampling
+"""
+function sampletauindex!(W::Vector{Float64}, Qs::Array{ComplexF64}, psi::Vector{ComplexF64},
+                         params::SimulParameters)
+    # First, sample a random number and divide by dt to avoid multiplying by dt the weights
+    alpha = rand() / params.dt
+    u = 0.0
+    # now sum until alpha is exceded
+    # println(psi)
+    tau_index = 1
+    while u < alpha && tau_index < params.nsamples
+        u = u + real(dot(psi, Qs[:, :, tau_index], psi))
+        tau_index = tau_index + 1
+    end
+    return tau_index
+end
+
+"""
+
+```
+samplejumptime!(W::Vector{Float64}, Qs::Array{ComplexF64}, psi::VecOrMat{ComplexF64})
+```
+
+Sample a jump time index from the state `psi` (pure or mixed), modfying `W` to write on it.
+The technique is inversion sampling
+"""
+function sampletauindex!(W::Vector{Float64}, Qs::Array{ComplexF64}, psi::Matrix{ComplexF64},
+                         params::SimulParameters)
+    # First, sample a random number and divide by dt to avoid multiplying by dt the weights
+    alpha = rand() / params.dt
+    u = 0.0
+    # now sum until alpha is exceded
+    tau_index = 1
+    while u < alpha && tau_index < params.nsamples
+        u = u + real(tr(Qs[:, :, tau_index]* psi))
+        tau_index = tau_index + 1
+    end
+    return tau_index
+end
+
+
+
+
+"""
+
+```
 gillipsiestep_returntau!(sys::System, params::SimulParameters, W::Vector{Float64},
                         P::Vector{Float64}, Vs::Array{ComplexF64}, ts::Vector{Float64},
                         t::Float64, psi::VecOrMat{ComplexF64}, traj::Trajectory )
 
 ```
 Do a step of the Gillipsie algorithm, updating the state and the weights, and returning the
-obtained jump time.
+obtained jump time. In this version the time jump sampling is done by calling `StatsBase`.
 """
 function gillipsiestep_returntau!(sys::System, params::SimulParameters, W::Vector{Float64},
                         P::Vector{Float64}, Vs::Array{ComplexF64}, ts::Vector{Float64},
                         t::Float64, psi::VecOrMat{ComplexF64}, traj::Trajectory )
     #Sample jump time and  move state to pre-jump state
-    # println(psi)
     tau_index = StatsBase.sample(1:params.nsamples, StatsBase.weights(W))
     prejumpupdate!(Vs[:, :, tau_index], psi)
     # Sample jump channel
@@ -231,6 +280,44 @@ function gillipsiestep_returntau!(sys::System, params::SimulParameters, W::Vecto
     return tau
 
 end
+
+
+"""
+
+```
+gillipsiestep_returntau!(sys::System, params::SimulParameters, W::Vector{Float64},
+                        P::Vector{Float64}, Qs::Array{ComplexF64}, Vs::Array{ComplexF64},
+ ts::Vector{Float64},
+                        t::Float64, psi::VecOrMat{ComplexF64}, traj::Trajectory )
+
+```
+
+Do a step of the Gillipsie algorithm, updating the state and the weights, and returning the
+obtained jump time. In this version the time is extracted using inversion sampling instead of
+calling `StatsBase`.
+"""
+function gillipsiestep_returntau!(sys::System, params::SimulParameters, W::Vector{Float64},
+                        P::Vector{Float64}, Vs::Array{ComplexF64}, ts::Vector{Float64},
+                        t::Float64, psi::VecOrMat{ComplexF64}, traj::Trajectory, Qs::Array{ComplexF64}  )
+    tau_index = sampletauindex!(W, Qs, psi, params)
+    # in case the last index was at the last index, return already to avoid errors with dark states
+    if tau_index == params.nsamples
+        # push!(traj, DetectionClick(tau, channel))
+        return tau_index
+    end
+    prejumpupdate!(Vs[:, :, tau_index], psi)
+    # Sample jump channel
+    calculatechannelweights!(P, psi, sys)
+    channel = StatsBase.sample(1:sys.NCHANNELS, StatsBase.weights(P))
+    # State update
+    postjumpupdate!(sys.Ls[channel], psi)
+    tau = ts[tau_index]
+    push!(traj, DetectionClick(tau, channel))
+    return tau
+
+end
+
+
 ############# Single Trajectory Routine ######################
 """
 ```
@@ -267,14 +354,9 @@ function run_singletrajectory(sys::System, params::SimulParameters,
     t::Float64 = 0
     channel = 0
     # Run the trajectory
-    calculatewtdweights!(W, Qs, psi, params)
+    # calculatewtdweights!(W, Qs, psi, params)
     while t < params.tf
-        t = t + gillipsiestep_returntau!(sys, params, W, P, Vs, ts, t, psi, traj)
-        # reSample WTD
-        calculatewtdweights!(W, Qs, psi, params)
-        if sum(W) < params.eps
-            break
-        end
+        t = t + gillipsiestep_returntau!(sys, params, W, P, Vs, ts, t, psi, traj, Qs)
     end
     return traj
 end
