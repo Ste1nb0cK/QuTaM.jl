@@ -1,3 +1,28 @@
+"""
+
+```
+run_trajectories(sys::System, params::SimulParameters; progbar::Bool = true,
+                          psireset::VecOrMat{ComplexF64}=zeros(ComplexF64, 0))
+```
+
+Sample multiple trajectories of `sys`. with the `seed`, `nsamples` and `psi0` specified in
+`params`. If the process is of renewal type,i.e. after a jump it always comes to the same
+state, that state can be specified via `psireset` and it will be used to optimize the
+sampling of the jump times.
+#  Arguments
+- `sys::System`: The system for which to run the trajectoris
+- `params::SimulParameters`: specificies the details of the trajectiories:
+                             seed, number of points in the finegrid, initial state
+                             and tolerance for the dark state detection, and the number
+                             of trajectories to run.
+
+# Optional Arguments
+- `progbar::Bool`: if true, show a progress bar of the iteration, `true` by default.
+- `psireset::VecOrMat{ComplexF64}`: if specified, it is used to optimize the jump time sampling.
+
+# Return
+A `Vector{Trajectory}` of length `params.ntraj` with the sampled trajectories.
+"""
 function run_trajectories(sys::System, params::SimulParameters; progbar::Bool = true,
                           psireset::VecOrMat{ComplexF64}=zeros(ComplexF64, 0))
     ## Precomputing

@@ -24,6 +24,7 @@ makedocs(;
       "System and SimulParameters" => "system_simulparams.md",
       "Jump Unraveling" => "jump_unraveling.md",
       "Monitoring Quantum Metrology" => "monitoring_metrology.md",
+      "Utilities" => "utilities.md",
       "Bibliography" => "bibliography.md"
   ],
   plugins=[bib]

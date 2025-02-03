@@ -1,3 +1,19 @@
+"""
+
+```
+rk4(f, y0, tspan, nsteps)
+```
+# Arguments
+- `f::Function`: function ``f(t, y)`` defininf the system of ODEs
+- `y0::Vector{Float}`: inital condition
+- `tspan::Tuple{Float64}`: initial and final time
+- `nsteps::Int`: number of steps.
+
+# Returns
+An array `Array{typeof(y0[1])}` with dimensions `(ndims(y0), nsteps)`
+with the values of ``y`` at each step.
+
+"""
 function rk4(f, y0, tspan, nsteps)
     t0, tf = tspan
     h = (tf-t0)/nsteps

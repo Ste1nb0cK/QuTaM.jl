@@ -203,6 +203,17 @@ function postjumpupdate!(L::Matrix{ComplexF64}, psi::Matrix{ComplexF64}; normali
         end
 end
 
+"""
+
+```
+gillipsiestep_returntau!(sys::System, params::SimulParameters, W::Vector{Float64},
+                        P::Vector{Float64}, Vs::Array{ComplexF64}, ts::Vector{Float64},
+                        t::Float64, psi::VecOrMat{ComplexF64}, traj::Trajectory )
+
+```
+Do a step of the Gillipsie algorithm, updating the state and the weights, and returning the
+obtained jump time.
+"""
 function gillipsiestep_returntau!(sys::System, params::SimulParameters, W::Vector{Float64},
                         P::Vector{Float64}, Vs::Array{ComplexF64}, ts::Vector{Float64},
                         t::Float64, psi::VecOrMat{ComplexF64}, traj::Trajectory )
@@ -225,11 +236,10 @@ end
 ```
 run_singletrajectory(sys::System, params::SimulParameters,
     W::Vector{Float64}, P::Vector{Float64}, ts::Vector{Float64},
-    Qs::Array{ComplexF64}, Vs::Array{ComplexF64}; seed::Int64 = 1, isrenewal=false)
+    Qs::Array{ComplexF64}, Vs::Array{ComplexF64}; seed::Int64 = 1)
 ```
 
-Sample a jump trajectory for the system `sys` using the
- *Quantum Gillipsie Algorithm* [radaelli2024gillespie](@cite).
+Sample a jump trajectory for the system `sys` using the *Quantum Gillipsie Algorithm* [radaelli2024gillespie](@cite).
 
 # Positional Arguments
 - `sys::System`: the system from which the trajectory is obtained.
@@ -269,6 +279,18 @@ function run_singletrajectory(sys::System, params::SimulParameters,
     return traj
 end
 
+
+"""
+```
+run_singletrajectory_renewal(sys::System, params::SimulParameters,
+    W::Vector{Float64}, W0::Vector{Float64}, P::Vector{Float64}, ts::Vector{Float64},
+    Qs::Array{ComplexF64}, Vs::Array{ComplexF64}, psireset::VecOrMat{ComplexF64}; seed::Int64 = 1)
+```
+
+Same as `run_singletrajectory` but uses `psireset` to optimize the jump time sampling
+by exploiting the process is renewal. Additionally, `W0` must be provided to sample the
+first jump from the initial state, which may not coincide with `psireset`.
+"""
 function run_singletrajectory_renewal(sys::System, params::SimulParameters,
     W::Vector{Float64}, W0::Vector{Float64}, P::Vector{Float64}, ts::Vector{Float64},
     Qs::Array{ComplexF64}, Vs::Array{ComplexF64}, psireset::VecOrMat{ComplexF64};
