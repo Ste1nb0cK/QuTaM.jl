@@ -1,10 +1,5 @@
 # This test evaluates if the trace of the monitoring operator is working
-using Test
 # using BackAction
-using LinearAlgebra
-using LaTeXStrings
-using ProgressMeter
-using Statistics
 # Consider a radiative damping for the case of an N-level system.
 # The logarithmic derivatives of the trajectory distribution
 @testset "Trajectory Contributions" begin
@@ -117,7 +112,8 @@ function GetFI(delta::Float64, ntraj::Int64)
                              1.0, # Multiplier to use in the fine grid
                              1e-3 # Tolerance for passing Dark state test
                              )
-    trajectories = run_trajectories(sys, params; progbar=false, isrenewal=true);
+
+    trajectories = run_trajectories(sys, params; progbar=false, psireset = params.psi0 );
     t_given = [tf];
     ntimes = size(t_given)[1]
     xi_sample = Array{ComplexF64}(undef, sys.NLEVELS, sys.NLEVELS, ntimes, params.ntraj)
@@ -153,8 +149,3 @@ fi_t_gammelmark = [0.115, 0.221, 0.338, 0.425, 0.507, 0.557, 0.573, 0.566, 0.532
     end
 end
 
-# Activate plots in case you want to see them
-# scatter(delta_gammelmark, fi_t_gammelmark, label="Gammelmark-Molmer") # dashlengths=dashlengths)
-# plot!(delta_gammelmark, fi_t_gammelmark,  label=false, linestyle=:dash, xlabel=L"\Delta", ylabel=L"I_{\Delta\Delta}/T")
-# scatter!(delta_gammelmark, my_fi_t , label="Produced")
-# plot!(delta_gammelmark, my_fi_t, label=false, linestyle=:dash)

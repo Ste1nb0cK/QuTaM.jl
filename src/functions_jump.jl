@@ -203,19 +203,32 @@ function postjumpupdate!(L::Matrix{ComplexF64}, psi::Matrix{ComplexF64}; normali
         end
 end
 
-function gillipsiestep!(sys::System, params::SimulParameters, W::Vector{Float64},
+"""
+
+```
+gillipsiestep_returntau!(sys::System, params::SimulParameters, W::Vector{Float64},
                         P::Vector{Float64}, Vs::Array{ComplexF64}, ts::Vector{Float64},
-                        t::Float64, psi::Vector{ComplexF64}, traj::Trajectory )
-      #Sample jump time and  move state to pre-jump state
-        tau_index = StatsBase.sample(1:params.nsamples, StatsBase.weights(W))
-        t = ts[tau_index] + t
-        prejumpupdate!(Vs[:, :, tau_index], psi)
-        # Sample jump channel
-        calculatechannelweights!(P, psi, sys)
-        channel = StatsBase.sample(1:sys.NCHANNELS, StatsBase.weights(P))
-        # State update
-        postjumpupdate!(sys.Ls[channel], psi)
-        push!(traj, DetectionClick(ts[tau_index], channel))
+                        t::Float64, psi::VecOrMat{ComplexF64}, traj::Trajectory )
+
+```
+Do a step of the Gillipsie algorithm, updating the state and the weights, and returning the
+obtained jump time.
+"""
+function gillipsiestep_returntau!(sys::System, params::SimulParameters, W::Vector{Float64},
+                        P::Vector{Float64}, Vs::Array{ComplexF64}, ts::Vector{Float64},
+                        t::Float64, psi::VecOrMat{ComplexF64}, traj::Trajectory )
+    #Sample jump time and  move state to pre-jump state
+    # println(psi)
+    tau_index = StatsBase.sample(1:params.nsamples, StatsBase.weights(W))
+    prejumpupdate!(Vs[:, :, tau_index], psi)
+    # Sample jump channel
+    calculatechannelweights!(P, psi, sys)
+    channel = StatsBase.sample(1:sys.NCHANNELS, StatsBase.weights(P))
+    # State update
+    postjumpupdate!(sys.Ls[channel], psi)
+    tau = ts[tau_index]
+    push!(traj, DetectionClick(tau, channel))
+    return tau
 
 end
 ############# Single Trajectory Routine ######################
@@ -223,11 +236,10 @@ end
 ```
 run_singletrajectory(sys::System, params::SimulParameters,
     W::Vector{Float64}, P::Vector{Float64}, ts::Vector{Float64},
-    Qs::Array{ComplexF64}, Vs::Array{ComplexF64}; seed::Int64 = 1, isrenewal=false)
+    Qs::Array{ComplexF64}, Vs::Array{ComplexF64}; seed::Int64 = 1)
 ```
 
-Sample a jump trajectory for the system `sys` using the
- *Quantum Gillipsie Algorithm* [radaelli2024gillespie](@cite).
+Sample a jump trajectory for the system `sys` using the *Quantum Gillipsie Algorithm* [radaelli2024gillespie](@cite).
 
 # Positional Arguments
 - `sys::System`: the system from which the trajectory is obtained.
@@ -241,15 +253,13 @@ Sample a jump trajectory for the system `sys` using the
 
 # Keyword Arguments
 - `seed::Int64 = 1`: the seed of the sample. It does not need to coincide with that in `params`
-- `isrenewal = false`: whether to optimize the WTD calculation exploiting that the process is renewal,
-                       if `true` the WTD is calculated a single time for the whole run.
 
 # Returns
 - `traj::Trajectory`: vector with the obtained detection clicks.
 """
 function run_singletrajectory(sys::System, params::SimulParameters,
     W::Vector{Float64}, P::Vector{Float64}, ts::Vector{Float64},
-    Qs::Array{ComplexF64}, Vs::Array{ComplexF64}; seed::Int64 = 1, isrenewal=false)
+    Qs::Array{ComplexF64}, Vs::Array{ComplexF64}; seed::Int64 = 1)
     Random.seed!(seed)
     channel = 0
     traj = Vector{DetectionClick}()
@@ -259,17 +269,48 @@ function run_singletrajectory(sys::System, params::SimulParameters,
     # Run the trajectory
     calculatewtdweights!(W, Qs, psi, params)
     while t < params.tf
-        gillipsiestep!(sys, params, W, P, Vs, ts, t, psi, traj)
+        t = t + gillipsiestep_returntau!(sys, params, W, P, Vs, ts, t, psi, traj)
         # reSample WTD
-        if !isrenewal
-            calculatewtdweights!(W, Qs, psi, params)
-            if sum(W) < params.eps
-                break
-            end
+        calculatewtdweights!(W, Qs, psi, params)
+        if sum(W) < params.eps
+            break
         end
     end
     return traj
 end
+
+
+"""
+```
+run_singletrajectory_renewal(sys::System, params::SimulParameters,
+    W::Vector{Float64}, W0::Vector{Float64}, P::Vector{Float64}, ts::Vector{Float64},
+    Qs::Array{ComplexF64}, Vs::Array{ComplexF64}, psireset::VecOrMat{ComplexF64}; seed::Int64 = 1)
+```
+
+Same as `run_singletrajectory` but uses `psireset` to optimize the jump time sampling
+by exploiting the process is renewal. Additionally, `W0` must be provided to sample the
+first jump from the initial state, which may not coincide with `psireset`.
+"""
+function run_singletrajectory_renewal(sys::System, params::SimulParameters,
+    W::Vector{Float64}, W0::Vector{Float64}, P::Vector{Float64}, ts::Vector{Float64},
+    Qs::Array{ComplexF64}, Vs::Array{ComplexF64}, psireset::VecOrMat{ComplexF64};
+    seed::Int64 = 1)
+    Random.seed!(seed)
+    channel = 0
+    traj = Vector{DetectionClick}()
+    psi = copy(params.psi0)
+    t::Float64 = 0
+    channel = 0
+    # For the first jump use the WTD of the initial state
+    t = gillipsiestep_returntau!(sys, params, W0, P, Vs, ts, t, psi, traj)
+    # For the rest use the WTD of psireset
+    while t < params.tf
+        t = t + gillipsiestep_returntau!(sys, params, W, P, Vs, ts, t, psireset, traj)
+    end
+    return traj
+end
+
+
 
 
 """
