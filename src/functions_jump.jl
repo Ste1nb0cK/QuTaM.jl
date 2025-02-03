@@ -207,6 +207,7 @@ function gillipsiestep_returntau!(sys::System, params::SimulParameters, W::Vecto
                         P::Vector{Float64}, Vs::Array{ComplexF64}, ts::Vector{Float64},
                         t::Float64, psi::VecOrMat{ComplexF64}, traj::Trajectory )
     #Sample jump time and  move state to pre-jump state
+    # println(psi)
     tau_index = StatsBase.sample(1:params.nsamples, StatsBase.weights(W))
     prejumpupdate!(Vs[:, :, tau_index], psi)
     # Sample jump channel
@@ -278,7 +279,8 @@ function run_singletrajectory_renewal(sys::System, params::SimulParameters,
     psi = copy(params.psi0)
     t::Float64 = 0
     channel = 0
-    gillipsiestep!(sys, params, W0, P, Vs, ts, t, psi, traj)
+    # For the first jump use the WTD of the initial state
+    t = gillipsiestep_returntau!(sys, params, W0, P, Vs, ts, t, psi, traj)
     # For the rest use the WTD of psireset
     while t < params.tf
         t = t + gillipsiestep_returntau!(sys, params, W, P, Vs, ts, t, psireset, traj)

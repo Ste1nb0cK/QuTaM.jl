@@ -6,10 +6,13 @@ tspan = (0.0, params.tf)
 ntimes = 1000
 t_given = collect(LinRange(0, params.tf, ntimes));
 
+psireset = zeros(ComplexF64, 2)
+psireset[1] = 1
+
 ################## Average Simulation ################3
 # Generate a set of trajectories and states
 @time begin
-    trajectories = BackAction.run_trajectories(sys, params)
+    trajectories = BackAction.run_trajectories(sys, params; psireset=psireset)
 end
 ntimes = size(t_given)[1]
 sample = zeros(ComplexF64,  sys.NLEVELS, ntimes, params.ntraj) # states
@@ -88,8 +91,8 @@ f = WTD_rf(BackAction.rf_gamma, BackAction.rf_omega) # Instance of the WTD
 end
 # Run a KS test
 @time begin
-    ksresults = ApproximateTwoSampleKSTest(tau_sample, f_sample)
-    p = pvalue(ksresults) #pvalue
+    ksresults = HypothesisTests.ApproximateTwoSampleKSTest(tau_sample, f_sample)
+    p = HypothesisTests.pvalue(ksresults) #pvalue
 end
 rf_p0WTD = 0.2 # Minimal pvalue for accepting the null hypothesis
 

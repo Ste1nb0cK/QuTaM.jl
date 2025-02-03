@@ -112,7 +112,8 @@ function GetFI(delta::Float64, ntraj::Int64)
                              1.0, # Multiplier to use in the fine grid
                              1e-3 # Tolerance for passing Dark state test
                              )
-    trajectories = run_trajectories(sys, params; progbar=false, isrenewal=true);
+
+    trajectories = run_trajectories(sys, params; progbar=false, psireset = params.psi0 );
     t_given = [tf];
     ntimes = size(t_given)[1]
     xi_sample = Array{ComplexF64}(undef, sys.NLEVELS, sys.NLEVELS, ntimes, params.ntraj)

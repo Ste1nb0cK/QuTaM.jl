@@ -6,7 +6,7 @@ using ProgressMeter
 using Statistics
 using Random
 using Distributions
-using HypothesisTests
+import HypothesisTests
 @testset "Radiative Damping" begin
     include("test_radiative_damping.jl")
 end
