@@ -99,6 +99,9 @@ sys = BackAction.rdt_sys
     # Generic case
     trajectories = BackAction.run_trajectories(sys, params)
     for traj in trajectories
+        if isempty(traj)
+            continue
+        end
         jumpdts = [click.time for click in traj]
         mindt = extrema(jumpdts)[1]
         jumptimes = cumsum(jumpdts)

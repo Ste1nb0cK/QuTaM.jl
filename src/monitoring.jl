@@ -275,7 +275,7 @@ function monitoringoperator(t_given::Vector{Float64},
                 break
             end
         end
-        return states
+        return xis
     end
     # Evaluations before first jump
     while (t_given[counter] < traj[counter_c].time) && (counter <= ntimes)

@@ -48,6 +48,17 @@ BackAction.calculatechannelweights!(P::Vector{Float64}, psi::Vector{ComplexF64},
 ```@docs
 BackAction.calculatechannelweights!(P::Vector{Float64}, psi::Matrix{ComplexF64}, sys::System)
 ```
+
+```@docs
+BackAction.sampletauindex!(W::Vector{Float64}, Qs::Array{ComplexF64}, psi::Vector{ComplexF64},
+                         params::SimulParameters)
+```
+
+```@docs
+BackAction.sampletauindex!(W::Vector{Float64}, Qs::Array{ComplexF64}, psi::Matrix{ComplexF64},
+                         params::SimulParameters)
+```
+
 ### State Updates
 ```@docs
 BackAction.prejumpupdate!(V::Matrix{ComplexF64}, psi::Vector{ComplexF64}; normalize=false)
@@ -89,6 +100,12 @@ BackAction.run_singletrajectory_renewal(sys::System, params::SimulParameters, W:
 
 ```@docs
 BackAction.gillipsiestep_returntau!(sys::System, params::SimulParameters, W::Vector{Float64},P::Vector{Float64}, Vs::Array{ComplexF64}, ts::Vector{Float64},t::Float64, psi::VecOrMat{ComplexF64}, traj::Trajectory )
+```
+
+```@docs
+BackAction.gillipsiestep_returntau!(sys::System, params::SimulParameters, W::Vector{Float64},
+                        P::Vector{Float64}, Vs::Array{ComplexF64}, ts::Vector{Float64},
+                        t::Float64, psi::VecOrMat{ComplexF64}, traj::Trajectory, Qs::Array{ComplexF64}  )
 ```
 
 ```@docs
