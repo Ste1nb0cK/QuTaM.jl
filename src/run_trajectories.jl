@@ -71,7 +71,6 @@ function run_trajectories(sys::System, params::SimulParameters; progbar::Bool = 
             end
             finish!(p)
             return data
-
         end
 
 
